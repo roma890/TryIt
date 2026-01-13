@@ -40,7 +40,39 @@ export const googlePlacesService = {
         throw new Error(`Google Places API error: ${response.data.status}`);
       }
 
-      const restaurants: Restaurant[] = response.data.results.map((place: any) => ({
+      // Filter out non-restaurant places (hotels, lodging, spas, etc.)
+      const excludedTypes = [
+        'lodging',
+        'hotel',
+        'motel',
+        'resort',
+        'spa',
+        'health',
+        'gym',
+        'beauty_salon',
+        'hair_care',
+        'store',
+        'shopping_mall',
+        'supermarket',
+        'convenience_store',
+        'gas_station',
+      ];
+
+      const filteredResults = response.data.results.filter((place: any) => {
+        // Check if place has any excluded types
+        const hasExcludedType = place.types?.some((type: string) =>
+          excludedTypes.includes(type)
+        );
+
+        // Only include if it doesn't have excluded types and has restaurant/food related types
+        const hasRestaurantType = place.types?.some((type: string) =>
+          ['restaurant', 'food', 'cafe', 'bar', 'meal_takeaway', 'meal_delivery'].includes(type)
+        );
+
+        return !hasExcludedType && hasRestaurantType;
+      });
+
+      const restaurants: Restaurant[] = filteredResults.map((place: any) => ({
         id: place.place_id,
         placeId: place.place_id,
         name: place.name,

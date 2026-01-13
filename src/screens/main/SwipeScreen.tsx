@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Animated,
+  Image,
 } from 'react-native';
 import * as Location from 'expo-location';
 import Swiper from 'react-native-deck-swiper';
@@ -32,6 +34,10 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
+  const [likedRestaurant, setLikedRestaurant] = useState<Restaurant | null>(null);
+  const likeAnimationScale = useRef(new Animated.Value(0)).current;
+  const likeAnimationOpacity = useRef(new Animated.Value(0)).current;
 
   // Use external filters if provided, otherwise use default
   const filters = externalFilters || {
@@ -101,8 +107,14 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
         opennow: filters.openNow,
       });
 
+      // Get liked restaurants to exclude from discover feed
+      const likedRestaurantIds = await swipeService.getLikedRestaurants(userId);
+
       // Apply additional filters
       let filtered = results;
+
+      // Exclude restaurants that user has already liked
+      filtered = filtered.filter((r) => !likedRestaurantIds.includes(r.id));
 
       if (filters.cuisines.length > 0) {
         filtered = filtered.filter((r) =>
@@ -120,7 +132,13 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
         filtered = filtered.filter((r) => r.rating >= filters.minRating!);
       }
 
-      setRestaurants(filtered);
+      // Remove duplicates based on restaurant ID
+      const uniqueRestaurants = filtered.filter(
+        (restaurant, index, self) =>
+          index === self.findIndex((r) => r.id === restaurant.id)
+      );
+
+      setRestaurants(uniqueRestaurants);
       setLoading(false);
     } catch (error) {
       console.error('Error loading restaurants:', error);
@@ -134,10 +152,53 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
     await swipeService.recordSwipe(userId, restaurant.id, 'left');
   };
 
+  const showLikePopup = (restaurant: Restaurant) => {
+    setLikedRestaurant(restaurant);
+    setShowLikeAnimation(true);
+
+    // Reset animation values
+    likeAnimationScale.setValue(0);
+    likeAnimationOpacity.setValue(0);
+
+    // Start animation
+    Animated.parallel([
+      Animated.spring(likeAnimationScale, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+      Animated.timing(likeAnimationOpacity, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Hide after 2 seconds
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(likeAnimationScale, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(likeAnimationOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
+        setShowLikeAnimation(false);
+        setLikedRestaurant(null);
+      });
+    }, 2000);
+  };
+
   const handleSwipeRight = async (index: number) => {
     const restaurant = restaurants[index];
     await swipeService.recordSwipe(userId, restaurant.id, 'right');
-    Alert.alert('Liked!', `You liked ${restaurant.name}`);
+    showLikePopup(restaurant);
   };
 
   const handleCardPress = (index: number) => {
@@ -285,6 +346,37 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
           <Ionicons name="heart" size={32} color={Colors.textLight} />
         </TouchableOpacity>
       </View>
+
+      {/* Like Animation Popup */}
+      {showLikeAnimation && likedRestaurant && (
+        <Animated.View
+          style={[
+            styles.likeAnimationContainer,
+            {
+              opacity: likeAnimationOpacity,
+              transform: [{ scale: likeAnimationScale }],
+            },
+          ]}
+        >
+          <View style={styles.likeAnimationCard}>
+            {likedRestaurant.photos && likedRestaurant.photos[0] && (
+              <Image
+                source={{ uri: likedRestaurant.photos[0] }}
+                style={styles.likeAnimationImage}
+              />
+            )}
+            <View style={styles.likeAnimationOverlay}>
+              <View style={styles.likeAnimationIconContainer}>
+                <Ionicons name="heart" size={80} color={Colors.gold} />
+              </View>
+              <Text style={styles.likeAnimationText}>Liked!</Text>
+              <Text style={styles.likeAnimationRestaurantName} numberOfLines={1}>
+                {likedRestaurant.name}
+              </Text>
+            </View>
+          </View>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -388,7 +480,7 @@ const styles = StyleSheet.create({
   emptyText: {
     fontFamily: 'PlayfairDisplay_700Bold',
     fontSize: 24,
-    color: Colors.textLight,
+    color: Colors.gold,
     marginBottom: 8,
   },
   emptySubtext: {
@@ -416,5 +508,67 @@ const styles = StyleSheet.create({
     fontSize: 17,
     color: Colors.background,
     letterSpacing: 0.5,
+  },
+  likeAnimationContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  likeAnimationCard: {
+    width: 300,
+    height: 400,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: Colors.surface,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  likeAnimationImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  likeAnimationOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  likeAnimationIconContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 80,
+    padding: 20,
+    marginBottom: 20,
+  },
+  likeAnimationText: {
+    fontFamily: 'PlayfairDisplay_900Black',
+    fontSize: 48,
+    color: Colors.textLight,
+    marginBottom: 10,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
+  },
+  likeAnimationRestaurantName: {
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 22,
+    color: Colors.gold,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,15 @@ import {
   Switch,
   TextInput,
   Alert,
+  FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import { FilterOptions, PriceRange, DietaryRestriction } from '../../types';
 import { Colors } from '../../constants/colors';
+import { googlePlacesService } from '../../services/api/googlePlaces.service';
 
 interface FilterScreenProps {
   navigation: any;
@@ -56,6 +59,33 @@ export const FilterScreen: React.FC<FilterScreenProps> = ({
   const [locationInput, setLocationInput] = useState('');
   const [showLocationInput, setShowLocationInput] = useState(false);
   const [loadingLocation, setLoadingLocation] = useState(false);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
+  // Fetch autocomplete suggestions
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (locationInput.trim().length < 3) {
+        setSuggestions([]);
+        return;
+      }
+
+      try {
+        setLoadingSuggestions(true);
+        const results = await googlePlacesService.autocomplete(locationInput);
+        setSuggestions(results);
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+        setSuggestions([]);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+
+    // Debounce the search
+    const timer = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timer);
+  }, [locationInput]);
 
   const toggleCuisine = (cuisine: string) => {
     setFilters((prev) => ({
@@ -161,6 +191,41 @@ export const FilterScreen: React.FC<FilterScreenProps> = ({
     }
   };
 
+  const handleSelectSuggestion = async (suggestion: any) => {
+    try {
+      setLoadingLocation(true);
+      setSuggestions([]);
+
+      // Get place details using place_id
+      const geocoded = await Location.geocodeAsync(suggestion.description);
+
+      if (geocoded && geocoded.length > 0) {
+        const { latitude, longitude } = geocoded[0];
+
+        // Update filters with the new location
+        setFilters((prev) => ({
+          ...prev,
+          location: {
+            latitude,
+            longitude,
+          },
+        }));
+
+        setLocationText(suggestion.description);
+        setShowLocationInput(false);
+        setLocationInput('');
+      } else {
+        Alert.alert('Error', 'Location not found. Please try a different search.');
+      }
+
+      setLoadingLocation(false);
+    } catch (error) {
+      console.error('Error selecting location:', error);
+      Alert.alert('Error', 'Failed to select location. Please try again.');
+      setLoadingLocation(false);
+    }
+  };
+
   const handleSearchLocation = async () => {
     if (!locationInput.trim()) {
       Alert.alert('Error', 'Please enter a location');
@@ -188,6 +253,7 @@ export const FilterScreen: React.FC<FilterScreenProps> = ({
         setLocationText(locationInput);
         setShowLocationInput(false);
         setLocationInput('');
+        setSuggestions([]);
       } else {
         Alert.alert('Error', 'Location not found. Please try a different search.');
       }
@@ -248,24 +314,60 @@ export const FilterScreen: React.FC<FilterScreenProps> = ({
 
           {/* Location Search Input */}
           {showLocationInput && (
-            <View style={styles.locationSearchContainer}>
-              <TextInput
-                style={styles.locationInput}
-                placeholder="Enter city or address..."
-                placeholderTextColor={Colors.textMuted}
-                value={locationInput}
-                onChangeText={setLocationInput}
-                autoCapitalize="words"
-                returnKeyType="search"
-                onSubmitEditing={handleSearchLocation}
-              />
-              <TouchableOpacity
-                style={styles.searchButton}
-                onPress={handleSearchLocation}
-                disabled={loadingLocation}
-              >
-                <Ionicons name="arrow-forward" size={20} color={Colors.background} />
-              </TouchableOpacity>
+            <View>
+              <View style={styles.locationSearchContainer}>
+                <TextInput
+                  style={styles.locationInput}
+                  placeholder="Enter city or address..."
+                  placeholderTextColor={Colors.textMuted}
+                  value={locationInput}
+                  onChangeText={setLocationInput}
+                  autoCapitalize="words"
+                  returnKeyType="search"
+                  onSubmitEditing={handleSearchLocation}
+                />
+                <TouchableOpacity
+                  style={styles.searchButton}
+                  onPress={handleSearchLocation}
+                  disabled={loadingLocation}
+                >
+                  <Ionicons name="arrow-forward" size={20} color={Colors.background} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Autocomplete Suggestions */}
+              {locationInput.length >= 3 && (
+                <View style={styles.suggestionsContainer}>
+                  {loadingSuggestions ? (
+                    <View style={styles.suggestionItem}>
+                      <ActivityIndicator size="small" color={Colors.gold} />
+                      <Text style={styles.suggestionText}>Searching...</Text>
+                    </View>
+                  ) : suggestions.length > 0 ? (
+                    <FlatList
+                      data={suggestions}
+                      keyExtractor={(item) => item.place_id}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={styles.suggestionItem}
+                          onPress={() => handleSelectSuggestion(item)}
+                        >
+                          <Ionicons name="location-outline" size={20} color={Colors.gold} />
+                          <Text style={styles.suggestionText} numberOfLines={1}>
+                            {item.description}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                      style={styles.suggestionsList}
+                      scrollEnabled={false}
+                    />
+                  ) : locationInput.length >= 3 ? (
+                    <View style={styles.suggestionItem}>
+                      <Text style={styles.suggestionText}>No suggestions found</Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
             </View>
           )}
         </View>
@@ -606,5 +708,31 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: Colors.background,
     letterSpacing: 0.5,
+  },
+  suggestionsContainer: {
+    marginTop: 8,
+    backgroundColor: Colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    maxHeight: 250,
+    overflow: 'hidden',
+  },
+  suggestionsList: {
+    flexGrow: 0,
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  suggestionText: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 15,
+    color: Colors.textLight,
+    flex: 1,
   },
 });

@@ -82,7 +82,8 @@ export const swipeService = {
         (doc) => doc.data().restaurantId
       );
 
-      return restaurantIds;
+      // Remove duplicates using Set
+      return Array.from(new Set(restaurantIds));
     } catch (error: any) {
       console.error('Error getting liked restaurants:', error);
       return [];

@@ -23,7 +23,7 @@ export const firestoreService = {
     }
   },
 
-  // Get liked restaurants with full data
+  // Get liked restaurants with full data (optimized with parallel fetching)
   getLikedRestaurants: async (userId: string): Promise<Restaurant[]> => {
     try {
       const restaurantIds = await swipeService.getLikedRestaurants(userId);
@@ -32,18 +32,29 @@ export const firestoreService = {
         return [];
       }
 
-      // Fetch restaurant data from Google Places API
+      // Fetch restaurant data from Google Places API in parallel batches
+      const batchSize = 10;
       const restaurants: Restaurant[] = [];
 
-      for (const placeId of restaurantIds) {
-        try {
-          const restaurant = await googlePlacesService.getRestaurantDetails(placeId);
-          if (restaurant) {
-            restaurants.push(restaurant);
+      for (let i = 0; i < restaurantIds.length; i += batchSize) {
+        const batch = restaurantIds.slice(i, i + batchSize);
+
+        // Fetch all restaurants in this batch in parallel
+        const batchPromises = batch.map(async (placeId) => {
+          try {
+            const restaurant = await googlePlacesService.getRestaurantDetails(placeId);
+            return restaurant;
+          } catch (error) {
+            console.error(`Error fetching restaurant ${placeId}:`, error);
+            return null;
           }
-        } catch (error) {
-          console.error(`Error fetching restaurant ${placeId}:`, error);
-        }
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+
+        // Filter out null results and add to restaurants array
+        const validRestaurants = batchResults.filter((r): r is Restaurant => r !== null);
+        restaurants.push(...validRestaurants);
       }
 
       return restaurants;

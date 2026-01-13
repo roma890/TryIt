@@ -11,6 +11,7 @@ import { RestaurantDetailsScreen } from '../screens/main/RestaurantDetailsScreen
 import { MatchesScreen } from '../screens/main/MatchesScreen';
 import { ProfileScreen } from '../screens/main/ProfileScreen';
 import { SocialFeedScreen } from '../screens/social/SocialFeedScreen';
+import { FriendsScreen } from '../screens/social/FriendsScreen';
 import { FilterScreen } from '../screens/settings/FilterScreen';
 import { RootStackParamList, MainTabParamList, FilterOptions } from '../types';
 import { Colors } from '../constants/colors';
@@ -107,19 +108,15 @@ const MainTabs: React.FC<{ userId: string; filters: FilterOptions; onFiltersChan
         options={{
           tabBarIcon: ({ focused, color }) => (
             <Ionicons
-              name={focused ? "chatbubbles" : "chatbubbles-outline"}
+              name={focused ? "people" : "people-outline"}
               size={24}
               color={color}
             />
           ),
-          tabBarLabel: 'Chat',
+          tabBarLabel: 'Friends',
         }}
       >
-        {() => (
-          <View style={styles.placeholder}>
-            <Text style={styles.placeholderText}>Chat - Coming Soon</Text>
-          </View>
-        )}
+        {(props) => <FriendsScreen {...props} userId={userId} />}
       </Tab.Screen>
 
       <Tab.Screen
