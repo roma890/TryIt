@@ -384,7 +384,7 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#4A1528',
   },
   header: {
     flexDirection: 'row',
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: '#4A1528',
   },
   loadingText: {
     fontFamily: 'DMSans_500Medium',
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: '#4A1528',
     padding: 20,
   },
   emptyText: {

@@ -372,6 +372,21 @@ export const FilterScreen: React.FC<FilterScreenProps> = ({
           )}
         </View>
 
+        {/* Open Now */}
+        <View style={styles.section}>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Open Now</Text>
+            <Switch
+              value={filters.openNow}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, openNow: value }))
+              }
+              trackColor={{ false: Colors.border, true: Colors.gold }}
+              thumbColor={Colors.textLight}
+            />
+          </View>
+        </View>
+
         {/* Distance */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Distance</Text>
@@ -474,21 +489,6 @@ export const FilterScreen: React.FC<FilterScreenProps> = ({
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
-        </View>
-
-        {/* Other Options */}
-        <View style={styles.section}>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Open Now</Text>
-            <Switch
-              value={filters.openNow}
-              onValueChange={(value) =>
-                setFilters((prev) => ({ ...prev, openNow: value }))
-              }
-              trackColor={{ false: Colors.border, true: Colors.gold }}
-              thumbColor={Colors.textLight}
-            />
           </View>
         </View>
 
@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
   chipText: {
     fontFamily: 'DMSans_500Medium',
     fontSize: 14,
-    color: Colors.textSecondary,
+    color: Colors.textLight,
   },
   chipTextSelected: {
     fontFamily: 'DMSans_700Bold',
