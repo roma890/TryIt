@@ -1,39 +1,39 @@
-// Modern, elegant design with warm accents
+// Fresh, modern design with mint green & teal accents
 export const Colors = {
-  // Primary colors - Deep sophisticated blue
-  primary: '#F61EB',       // Rich deep blue (background)
-  primaryLight: '#1A2B3C', // Lighter blue
-  primaryDark: '#0A0F14',  // Darker blue
+  // Primary colors - Deep teal gradient
+  primary: '#0D1B2A',       // Deep navy-teal (background)
+  primaryLight: '#1B263B',  // Lighter navy-teal
+  primaryDark: '#000814',   // Darkest teal-black
 
-  // Accent colors - Warm gold/bronze
-  accent: '#2C3E50',       // Slate blue-gray accent
-  accentLight: '#34495E',  // Lighter slate
-  highlight: '#B59B6A',    // Warm gold/bronze highlight
+  // Accent colors - Mint & Teal
+  accent: '#14B8A6',        // Vibrant teal accent
+  accentLight: '#2DD4BF',   // Light teal/cyan
+  highlight: '#6EE7B7',     // Fresh mint green highlight
 
   // Backgrounds
-  background: '#F61EB',    // Main background - deep blue
-  surface: '#1A2B3C',      // Card/surface background
-  card: '#1F2933',         // Card background
+  background: '#0D1B2A',    // Main background - deep teal-navy
+  surface: '#1B263B',       // Card/surface background
+  card: '#252F3F',          // Card background - slightly lighter
 
   // Text colors
-  text: '#1F2933',         // Primary text - dark blue-gray
-  textLight: '#FFFFFF',    // Light text for dark backgrounds
-  textSecondary: '#9AA5B1', // Secondary text
-  textMuted: '#CBD2D9',    // Muted text
+  text: '#1B263B',          // Primary text - dark teal
+  textLight: '#F0FDFA',     // Light text with mint tint
+  textSecondary: '#94A3B8', // Secondary text - slate
+  textMuted: '#CBD5E1',     // Muted text - light slate
 
   // Status colors
-  success: '#52C41A',      // Fresh green
-  error: '#F5222D',        // Alert red
-  warning: '#FAAD14',      // Warning amber
+  success: '#10B981',       // Emerald green
+  error: '#EF4444',         // Modern red
+  warning: '#F59E0B',       // Amber warning
 
   // UI elements
-  border: '#323F4B',       // Border color
-  shadow: 'rgba(0, 0, 0, 0.15)', // Soft shadow
-  overlay: 'rgba(15, 23, 42, 0.85)', // Dark overlay
-  divider: '#2D3748',      // Divider lines
+  border: '#334155',        // Slate border
+  shadow: 'rgba(0, 0, 0, 0.2)', // Deeper shadow
+  overlay: 'rgba(13, 27, 42, 0.9)', // Deep teal overlay
+  divider: '#334155',       // Slate divider
 
   // Special
-  heart: '#F5222D',        // Love/match color
-  star: '#FAAD14',         // Rating star
-  gold: '#B59B6A',         // Gold accent
+  heart: '#EC4899',         // Pink heart for contrast
+  star: '#FBBF24',          // Warm yellow star
+  gold: '#6EE7B7',          // Mint green (replacing gold)
 };

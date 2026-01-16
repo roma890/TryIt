@@ -30,7 +30,12 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
       onPress={onPress}
       activeOpacity={0.95}
     >
-      <Image source={{ uri: mainPhoto }} style={styles.image} />
+      <Image
+        source={{ uri: mainPhoto }}
+        style={styles.image}
+        resizeMode="cover"
+        resizeMethod="scale"
+      />
 
       <LinearGradient
         colors={['transparent', 'rgba(15, 23, 42, 0.75)', 'rgba(15, 23, 42, 0.98)']}

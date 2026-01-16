@@ -88,7 +88,7 @@ export const googlePlacesService = {
         rating: place.rating || 0,
         reviewCount: place.user_ratings_total || 0,
         photos: place.photos?.map((photo: any) =>
-          getPhotoUrl(photo.photo_reference)
+          getPhotoUrl(photo.photo_reference, 1200)
         ) || [],
         openingHours: place.opening_hours,
       }));

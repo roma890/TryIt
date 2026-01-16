@@ -13,8 +13,10 @@ import {
   Modal,
   FlatList,
   SectionList,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Restaurant } from '../../types';
 import { firestoreService } from '../../services/firebase/firestore.service';
 import { Colors } from '../../constants/colors';
@@ -288,26 +290,44 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Your Matches</Text>
-        <Text style={styles.headerSubtitle}>
-          {matches.length} {matches.length === 1 ? 'restaurant' : 'restaurants'} you loved
-        </Text>
-      </View>
+      <LinearGradient
+        colors={[Colors.primaryDark, Colors.background, Colors.surface]}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      >
+        <View style={styles.headerContent}>
+          <Text style={styles.headerTitle}>Your Matches</Text>
+          <View style={styles.matchCountBadge}>
+            <LinearGradient
+              colors={['#14B8A6', '#6EE7B7']}
+              style={styles.badgeGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons name="heart" size={16} color={Colors.primaryDark} />
+              <Text style={styles.matchCountText}>
+                {matches.length} {matches.length === 1 ? 'match' : 'matches'}
+              </Text>
+            </LinearGradient>
+          </View>
+        </View>
+      </LinearGradient>
 
       {allMatches.length > 0 && (
         <View style={styles.filterSection}>
-          <Text style={styles.filterLabel}>Filter by Location:</Text>
           <TouchableOpacity
-            style={styles.dropdownButton}
+            style={styles.modernDropdownButton}
             onPress={() => setShowLocationDropdown(!showLocationDropdown)}
           >
-            <Ionicons name="location" size={20} color={Colors.gold} />
+            <View style={styles.dropdownIconContainer}>
+              <Ionicons name="location" size={18} color={Colors.gold} />
+            </View>
             <Text style={styles.dropdownButtonText}>{selectedLocation}</Text>
             <Ionicons
               name={showLocationDropdown ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color={Colors.gold}
+              size={18}
+              color={Colors.textSecondary}
             />
           </TouchableOpacity>
 
@@ -378,89 +398,117 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
             </View>
           )}
           renderItem={({ item: restaurant }) => (
-            <TouchableOpacity
-              style={styles.matchCard}
-              onPress={() => handleRestaurantPress(restaurant)}
-              activeOpacity={0.9}
-            >
-              <Image
-                source={{
-                  uri: restaurant.photos?.[0] || 'https://via.placeholder.com/400x200',
-                }}
-                style={styles.matchImage}
-                resizeMode="cover"
-              />
+            <View style={styles.cardWrapper}>
+              <TouchableOpacity
+                style={styles.modernMatchCard}
+                onPress={() => handleRestaurantPress(restaurant)}
+                activeOpacity={0.95}
+              >
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={{
+                      uri: restaurant.photos?.[0] || 'https://via.placeholder.com/400x200',
+                    }}
+                    style={styles.matchImage}
+                    resizeMode="cover"
+                  />
+                  <LinearGradient
+                    colors={['transparent', 'rgba(0,0,0,0.7)']}
+                    style={styles.imageGradient}
+                  />
+                  {restaurant.openingHours?.open_now !== undefined && (
+                    <View
+                      style={[
+                        styles.modernOpenStatus,
+                        restaurant.openingHours.open_now
+                          ? styles.openNow
+                          : styles.closed,
+                      ]}
+                    >
+                      <View style={styles.statusDot} />
+                      <Text style={styles.openStatusText}>
+                        {restaurant.openingHours.open_now ? 'Open' : 'Closed'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
 
-              <View style={styles.matchInfo}>
-                <View style={styles.matchHeader}>
-                  <View style={styles.matchHeaderLeft}>
-                    <Text style={styles.matchName} numberOfLines={1}>
-                      {restaurant.name}
-                    </Text>
-                    <View style={styles.ratingRow}>
-                      <Ionicons name="star" size={16} color={Colors.gold} />
-                      <Text style={styles.ratingText}>
-                        {restaurant.rating.toFixed(1)}
+                <View style={styles.modernMatchInfo}>
+                  <View style={styles.matchHeaderRow}>
+                    <View style={styles.matchHeaderLeft}>
+                      <Text style={styles.modernMatchName} numberOfLines={1}>
+                        {restaurant.name}
                       </Text>
-                      <Text style={styles.reviewCount}>
-                        ({restaurant.reviewCount})
-                      </Text>
-                      <Text style={styles.priceLevel}>{restaurant.priceLevel}</Text>
+                      <View style={styles.modernRatingRow}>
+                        <View style={styles.ratingBadge}>
+                          <Ionicons name="star" size={14} color={Colors.gold} />
+                          <Text style={styles.ratingText}>
+                            {restaurant.rating.toFixed(1)}
+                          </Text>
+                        </View>
+                        <Text style={styles.reviewCount}>
+                          {restaurant.reviewCount} reviews
+                        </Text>
+                        {restaurant.priceLevel && (
+                          <Text style={styles.priceLevel}>{restaurant.priceLevel}</Text>
+                        )}
+                      </View>
                     </View>
                   </View>
 
-                  <View style={styles.actionButtons}>
-                    <TouchableOpacity
-                      style={styles.shareButton}
-                      onPress={() => handleShare(restaurant)}
-                    >
-                      <Ionicons name="share-outline" size={24} color={Colors.gold} />
-                    </TouchableOpacity>
+                  {restaurant.cuisine && restaurant.cuisine.length > 0 && (
+                    <View style={styles.modernCuisineContainer}>
+                      {restaurant.cuisine.slice(0, 3).map((cuisine, index) => (
+                        <View key={index} style={styles.modernCuisineTag}>
+                          <Text style={styles.cuisineText}>
+                            {cuisine.replace(/_/g, ' ')}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
 
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => handleRemoveMatch(restaurant.id)}
-                    >
-                      <Ionicons name="close-circle" size={28} color={Colors.error} />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {restaurant.cuisine && restaurant.cuisine.length > 0 && (
-                  <View style={styles.cuisineContainer}>
-                    {restaurant.cuisine.slice(0, 3).map((cuisine, index) => (
-                      <View key={index} style={styles.cuisineTag}>
-                        <Text style={styles.cuisineText}>
-                          {cuisine.replace(/_/g, ' ')}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-
-                <View style={styles.addressRow}>
-                  <Ionicons name="location" size={14} color={Colors.textMuted} />
-                  <Text style={styles.addressText} numberOfLines={1}>
-                    {restaurant.address}
-                  </Text>
-                </View>
-
-                {restaurant.openingHours?.open_now !== undefined && (
-                  <View
-                    style={[
-                      styles.openStatus,
-                      restaurant.openingHours.open_now
-                        ? styles.openNow
-                        : styles.closed,
-                    ]}
-                  >
-                    <Text style={styles.openStatusText}>
-                      {restaurant.openingHours.open_now ? 'Open Now' : 'Closed'}
+                  <View style={styles.addressRow}>
+                    <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
+                    <Text style={styles.modernAddressText} numberOfLines={1}>
+                      {restaurant.address}
                     </Text>
                   </View>
-                )}
-              </View>
-            </TouchableOpacity>
+                </View>
+
+                <View style={styles.modernActionButtons}>
+                  <TouchableOpacity
+                    style={styles.modernActionButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleShare(restaurant);
+                    }}
+                  >
+                    <LinearGradient
+                      colors={[Colors.surface, Colors.card]}
+                      style={styles.actionButtonGradient}
+                    >
+                      <Ionicons name="share-outline" size={20} color={Colors.gold} />
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.modernActionButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleRemoveMatch(restaurant.id);
+                    }}
+                  >
+                    <LinearGradient
+                      colors={[Colors.surface, Colors.card]}
+                      style={styles.actionButtonGradient}
+                    >
+                      <Ionicons name="heart-dislike-outline" size={20} color={Colors.error} />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </View>
           )}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -577,25 +625,44 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   header: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingBottom: 24,
+  },
+  headerContent: {
+    gap: 16,
   },
   headerTitle: {
     fontFamily: 'PlayfairDisplay_900Black',
-    fontSize: 36,
+    fontSize: 40,
     color: Colors.textLight,
-    marginBottom: 4,
     letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  headerSubtitle: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 16,
-    color: Colors.textSecondary,
-    letterSpacing: 0.3,
+  matchCountBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#14B8A6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  badgeGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  matchCountText: {
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 15,
+    color: Colors.primaryDark,
+    letterSpacing: 0.5,
   },
   emptyContainer: {
     flex: 1,
@@ -639,127 +706,160 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 80,
+    padding: 20,
+    paddingBottom: 100,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginHorizontal: -16,
+    paddingHorizontal: 4,
+    paddingVertical: 16,
     marginTop: 8,
     marginBottom: 12,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: Colors.border,
-    gap: 8,
+    gap: 10,
   },
   sectionHeaderText: {
     fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 18,
+    fontSize: 20,
     color: Colors.gold,
     letterSpacing: 0.5,
   },
-  matchCard: {
+  cardWrapper: {
+    marginBottom: 20,
+  },
+  modernMatchCard: {
     backgroundColor: Colors.surface,
-    borderRadius: 16,
-    marginBottom: 16,
+    borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.border,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  imageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 200,
   },
   matchImage: {
     width: '100%',
-    height: 180,
+    height: '100%',
     backgroundColor: Colors.card,
   },
-  matchInfo: {
-    padding: 16,
+  imageGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 100,
   },
-  matchHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+  modernMatchInfo: {
+    padding: 20,
+    paddingBottom: 16,
+  },
+  matchHeaderRow: {
+    marginBottom: 14,
   },
   matchHeaderLeft: {
     flex: 1,
-    marginRight: 12,
   },
-  matchName: {
+  modernMatchName: {
     fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 22,
+    fontSize: 24,
     color: Colors.textLight,
-    marginBottom: 6,
+    marginBottom: 10,
     letterSpacing: 0.3,
+    lineHeight: 30,
   },
-  ratingRow: {
+  modernRatingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  ratingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.card,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 5,
   },
   ratingText: {
     fontFamily: 'DMSans_700Bold',
-    fontSize: 15,
+    fontSize: 14,
     color: Colors.textLight,
   },
   reviewCount: {
     fontFamily: 'DMSans_400Regular',
-    fontSize: 14,
+    fontSize: 13,
     color: Colors.textSecondary,
   },
   priceLevel: {
     fontFamily: 'DMSans_700Bold',
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.gold,
-    marginLeft: 8,
   },
-  actionButtons: {
+  modernActionButtons: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
     flexDirection: 'row',
+    gap: 10,
+    zIndex: 10,
+  },
+  modernActionButton: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  actionButtonGradient: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-  },
-  shareButton: {
-    padding: 4,
-  },
-  removeButton: {
-    padding: 4,
   },
   filterSection: {
-    backgroundColor: Colors.surface,
     paddingVertical: 16,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    paddingHorizontal: 20,
+    backgroundColor: Colors.background,
   },
-  filterLabel: {
-    fontFamily: 'DMSans_700Bold',
-    fontSize: 14,
-    color: Colors.textLight,
-    marginBottom: 12,
-    letterSpacing: 0.5,
-  },
-  dropdownButton: {
+  modernDropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.card,
-    padding: 14,
-    borderRadius: 12,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border,
-    gap: 10,
+    gap: 12,
+    shadowColor: Colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  dropdownIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   dropdownButtonText: {
     fontFamily: 'DMSans_600SemiBold',
     fontSize: 15,
-    color: Colors.gold,
+    color: Colors.textLight,
     flex: 1,
   },
   dropdownMenu: {
@@ -795,47 +895,60 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_700Bold',
     color: Colors.gold,
   },
-  cuisineContainer: {
+  modernCuisineContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  cuisineTag: {
-    backgroundColor: Colors.gold,
-    borderRadius: 8,
+  modernCuisineTag: {
+    backgroundColor: 'rgba(110, 231, 183, 0.15)',
+    borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
+    borderWidth: 1,
+    borderColor: 'rgba(110, 231, 183, 0.4)',
   },
   cuisineText: {
-    fontFamily: 'DMSans_700Bold',
+    fontFamily: 'DMSans_600SemiBold',
     fontSize: 12,
-    color: Colors.background,
+    color: Colors.gold,
     textTransform: 'capitalize',
   },
   addressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 10,
+    gap: 8,
   },
-  addressText: {
+  modernAddressText: {
     fontFamily: 'DMSans_400Regular',
     fontSize: 14,
-    color: Colors.textMuted,
+    color: Colors.textSecondary,
     flex: 1,
+    lineHeight: 20,
   },
-  openStatus: {
-    alignSelf: 'flex-start',
-    borderRadius: 8,
+  modernOpenStatus: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.textLight,
   },
   openNow: {
-    backgroundColor: Colors.success,
+    backgroundColor: 'rgba(16, 185, 129, 0.95)',
   },
   closed: {
-    backgroundColor: Colors.error,
+    backgroundColor: 'rgba(239, 68, 68, 0.95)',
   },
   openStatusText: {
     fontFamily: 'DMSans_700Bold',

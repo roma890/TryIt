@@ -12,6 +12,7 @@ import {
 import * as Location from 'expo-location';
 import Swiper from 'react-native-deck-swiper';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Restaurant, FilterOptions } from '../../types';
 import { RestaurantCard } from '../../components/swipe/RestaurantCard';
 import { googlePlacesService } from '../../services/api/googlePlaces.service';
@@ -226,7 +227,14 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
           style={styles.filterButton}
           onPress={() => navigation.navigate('Filters')}
         >
-          <Text style={styles.filterButtonText}>Adjust Filters</Text>
+          <LinearGradient
+            colors={['#14B8A6', '#6EE7B7']}
+            style={styles.filterButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={styles.filterButtonText}>Adjust Filters</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     );
@@ -234,15 +242,27 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient
+        colors={[Colors.primaryDark, Colors.background, Colors.surface]}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      >
         <Text style={styles.headerTitle}>Discover Restaurants</Text>
         <TouchableOpacity
           style={styles.filterIcon}
           onPress={() => navigation.navigate('Filters')}
         >
-          <Ionicons name="options-outline" size={24} color={Colors.gold} />
+          <LinearGradient
+            colors={['#14B8A6', '#6EE7B7']}
+            style={styles.filterIconGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Ionicons name="options-outline" size={22} color={Colors.primaryDark} />
+          </LinearGradient>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <View style={styles.swiperContainer}>
         <Swiper
@@ -280,14 +300,14 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
               title: 'PASS',
               style: {
                 label: {
-                  backgroundColor: '#f44336',
-                  borderColor: '#f44336',
+                  backgroundColor: '#EF4444',
+                  borderColor: '#EF4444',
                   color: '#fff',
-                  borderWidth: 1,
-                  fontSize: 24,
+                  borderWidth: 2,
+                  fontSize: 26,
                   fontWeight: 'bold',
-                  padding: 10,
-                  borderRadius: 10,
+                  padding: 12,
+                  borderRadius: 16,
                 },
                 wrapper: {
                   flexDirection: 'column',
@@ -302,14 +322,14 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
               title: 'LIKE',
               style: {
                 label: {
-                  backgroundColor: '#4CAF50',
-                  borderColor: '#4CAF50',
+                  backgroundColor: '#10B981',
+                  borderColor: '#10B981',
                   color: '#fff',
-                  borderWidth: 1,
-                  fontSize: 24,
+                  borderWidth: 2,
+                  fontSize: 26,
                   fontWeight: 'bold',
-                  padding: 10,
-                  borderRadius: 10,
+                  padding: 12,
+                  borderRadius: 16,
                 },
                 wrapper: {
                   flexDirection: 'column',
@@ -326,24 +346,45 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
 
       <View style={styles.buttonsContainer}>
         <TouchableOpacity
-          style={[styles.actionButton, styles.passButton]}
+          style={styles.modernActionButton}
           onPress={() => swiperRef.current?.swipeLeft()}
         >
-          <Ionicons name="close" size={32} color={Colors.textLight} />
+          <LinearGradient
+            colors={['#EF4444', '#DC2626']}
+            style={styles.passButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Ionicons name="close" size={32} color={Colors.textLight} />
+          </LinearGradient>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionButton, styles.infoButton]}
+          style={styles.modernInfoButton}
           onPress={() => handleCardPress(currentIndex)}
         >
-          <Ionicons name="information" size={28} color={Colors.background} />
+          <LinearGradient
+            colors={['#14B8A6', '#6EE7B7']}
+            style={styles.infoButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Ionicons name="information" size={28} color={Colors.primaryDark} />
+          </LinearGradient>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.actionButton, styles.likeButton]}
+          style={styles.modernActionButton}
           onPress={() => swiperRef.current?.swipeRight()}
         >
-          <Ionicons name="heart" size={32} color={Colors.textLight} />
+          <LinearGradient
+            colors={['#10B981', '#059669']}
+            style={styles.likeButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Ionicons name="heart" size={32} color={Colors.textLight} />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
 
@@ -365,15 +406,25 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
                 style={styles.likeAnimationImage}
               />
             )}
-            <View style={styles.likeAnimationOverlay}>
+            <LinearGradient
+              colors={['rgba(0, 0, 0, 0.4)', 'rgba(0, 0, 0, 0.8)']}
+              style={styles.likeAnimationOverlay}
+            >
               <View style={styles.likeAnimationIconContainer}>
-                <Ionicons name="heart" size={80} color={Colors.gold} />
+                <LinearGradient
+                  colors={['#14B8A6', '#6EE7B7']}
+                  style={styles.likeIconGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name="heart" size={60} color={Colors.primaryDark} />
+                </LinearGradient>
               </View>
               <Text style={styles.likeAnimationText}>Liked!</Text>
               <Text style={styles.likeAnimationRestaurantName} numberOfLines={1}>
                 {likedRestaurant.name}
               </Text>
-            </View>
+            </LinearGradient>
           </View>
         </Animated.View>
       )}
@@ -384,36 +435,39 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#4A1528',
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 24,
     paddingTop: 60,
-    backgroundColor: Colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingBottom: 24,
   },
   headerTitle: {
-    fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 28,
+    fontFamily: 'PlayfairDisplay_900Black',
+    fontSize: 32,
     color: Colors.textLight,
     letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   filterIcon: {
-    padding: 10,
-    backgroundColor: Colors.card,
-    borderRadius: 12,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#14B8A6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  filterIconText: {
-    fontSize: 24,
+  filterIconGradient: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   swiperContainer: {
     flex: 1,
@@ -424,45 +478,55 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 20,
+    gap: 24,
     paddingBottom: 95,
     paddingTop: 20,
     backgroundColor: 'transparent',
   },
-  actionButton: {
+  modernActionButton: {
+    borderRadius: 36,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  passButtonGradient: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modernInfoButton: {
+    borderRadius: 32,
+    overflow: 'hidden',
+    shadowColor: '#14B8A6',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  infoButtonGradient: {
     width: 64,
     height: 64,
     borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
   },
-  passButton: {
-    backgroundColor: Colors.error,
-  },
-  infoButton: {
-    backgroundColor: Colors.gold,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-  },
-  likeButton: {
-    backgroundColor: Colors.success,
-  },
-  buttonIcon: {
-    fontSize: 28,
-    color: Colors.textLight,
-    fontWeight: '600',
+  likeButtonGradient: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#4A1528',
+    backgroundColor: Colors.background,
   },
   loadingText: {
     fontFamily: 'DMSans_500Medium',
@@ -474,14 +538,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#4A1528',
-    padding: 20,
+    backgroundColor: Colors.background,
+    padding: 40,
   },
   emptyText: {
     fontFamily: 'PlayfairDisplay_700Bold',
-    fontSize: 24,
+    fontSize: 28,
     color: Colors.gold,
-    marginBottom: 8,
+    marginBottom: 12,
   },
   emptySubtext: {
     fontFamily: 'DMSans_400Regular',
@@ -489,25 +553,28 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 8,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
   },
   filterButton: {
-    marginTop: 24,
-    backgroundColor: Colors.gold,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 12,
-    shadowColor: Colors.gold,
+    marginTop: 32,
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#14B8A6',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  filterButtonGradient: {
+    paddingHorizontal: 32,
+    paddingVertical: 16,
   },
   filterButtonText: {
     fontFamily: 'DMSans_700Bold',
     fontSize: 17,
-    color: Colors.background,
+    color: Colors.primaryDark,
     letterSpacing: 0.5,
+    textAlign: 'center',
   },
   likeAnimationContainer: {
     position: 'absolute',
@@ -542,32 +609,42 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   likeAnimationIconContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 80,
-    padding: 20,
-    marginBottom: 20,
+    overflow: 'hidden',
+    marginBottom: 24,
+    shadowColor: '#14B8A6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  likeIconGradient: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   likeAnimationText: {
     fontFamily: 'PlayfairDisplay_900Black',
-    fontSize: 48,
+    fontSize: 56,
     color: Colors.textLight,
-    marginBottom: 10,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 10,
+    marginBottom: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 12,
   },
   likeAnimationRestaurantName: {
     fontFamily: 'DMSans_700Bold',
-    fontSize: 22,
+    fontSize: 24,
     color: Colors.gold,
     textAlign: 'center',
     paddingHorizontal: 20,
-    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 10,
   },
