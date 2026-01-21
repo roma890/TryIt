@@ -228,7 +228,7 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
           onPress={() => navigation.navigate('Filters')}
         >
           <LinearGradient
-            colors={['#14B8A6', '#6EE7B7']}
+            colors={[Colors.accent, Colors.accentLight]}
             style={styles.filterButtonGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -254,12 +254,12 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
           onPress={() => navigation.navigate('Filters')}
         >
           <LinearGradient
-            colors={['#14B8A6', '#6EE7B7']}
+            colors={[Colors.accent, Colors.accentLight]}
             style={styles.filterIconGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Ionicons name="options-outline" size={22} color={Colors.primaryDark} />
+            <Ionicons name="options-outline" size={22} color={Colors.textLight} />
           </LinearGradient>
         </TouchableOpacity>
       </LinearGradient>
@@ -364,12 +364,12 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
           onPress={() => handleCardPress(currentIndex)}
         >
           <LinearGradient
-            colors={['#14B8A6', '#6EE7B7']}
+            colors={[Colors.accent, Colors.accentLight]}
             style={styles.infoButtonGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Ionicons name="information" size={28} color={Colors.primaryDark} />
+            <Ionicons name="information" size={28} color={Colors.textLight} />
           </LinearGradient>
         </TouchableOpacity>
 
@@ -412,12 +412,12 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
             >
               <View style={styles.likeAnimationIconContainer}>
                 <LinearGradient
-                  colors={['#14B8A6', '#6EE7B7']}
+                  colors={[Colors.accent, Colors.accentLight]}
                   style={styles.likeIconGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
-                  <Ionicons name="heart" size={60} color={Colors.primaryDark} />
+                  <Ionicons name="heart" size={60} color={Colors.textLight} />
                 </LinearGradient>
               </View>
               <Text style={styles.likeAnimationText}>Liked!</Text>
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
   filterIcon: {
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#14B8A6',
+    shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -502,7 +502,7 @@ const styles = StyleSheet.create({
   modernInfoButton: {
     borderRadius: 32,
     overflow: 'hidden',
-    shadowColor: '#14B8A6',
+    shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     marginTop: 32,
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#14B8A6',
+    shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -616,7 +616,7 @@ const styles = StyleSheet.create({
     borderRadius: 80,
     overflow: 'hidden',
     marginBottom: 24,
-    shadowColor: '#14B8A6',
+    shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.6,
     shadowRadius: 20,

@@ -36,11 +36,13 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
   const [allMatches, setAllMatches] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState<string>('All Locations');
+  const [selectedLocations, setSelectedLocations] = useState<Set<string>>(new Set());
   const [shareModalVisible, setShareModalVisible] = useState(false);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [friends, setFriends] = useState<Array<{ id: string; displayName: string; email: string; photoURL?: string }>>([]);
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
+  const [showLocationFilter, setShowLocationFilter] = useState(false);
+  const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set());
+  const [expandedStates, setExpandedStates] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadMatches();
@@ -93,128 +95,324 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
     }
   };
 
-  const filterByLocation = (location: string) => {
-    setSelectedLocation(location);
-    setShowLocationDropdown(false);
+  // Parse address into geographic components with improved accuracy
+  const parseAddress = (address: string): { city: string; state: string; country: string } => {
+    const parts = address.split(',').map(p => p.trim());
 
-    if (location === 'All Locations') {
+    let city = 'Unknown';
+    let state = '';
+    let country = 'Unknown';
+
+    // US state codes (uppercase for consistency)
+    const usStateCodes = new Set([
+      'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+      'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+      'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+      'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+      'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'
+    ]);
+
+    // Full country names for explicit matching
+    const countryNames = new Set([
+      'india', 'canada', 'united states', 'usa', 'united kingdom', 'uk',
+      'australia', 'france', 'germany', 'italy', 'spain', 'mexico',
+      'china', 'japan', 'brazil', 'argentina', 'south korea', 'singapore'
+    ]);
+
+    // State/Province patterns by country
+    const statePatterns: { [key: string]: string[] } = {
+      'Canada': ['ontario', 'quebec', 'british columbia', 'alberta', 'manitoba', 'saskatchewan', 'nova scotia', 'new brunswick', 'bc', 'on', 'qc', 'ab'],
+      'India': ['maharashtra', 'delhi', 'karnataka', 'tamil nadu', 'uttar pradesh', 'gujarat', 'west bengal', 'rajasthan', 'telangana'],
+      'Australia': ['new south wales', 'victoria', 'queensland', 'western australia', 'south australia', 'tasmania', 'nsw', 'vic', 'qld', 'wa', 'sa'],
+    };
+
+    if (parts.length === 0) {
+      return { city, state, country };
+    }
+
+    // Start from the end and work backwards
+    const lastPart = parts[parts.length - 1].replace(/\d+/g, '').trim();
+    const lastPartLower = lastPart.toLowerCase();
+
+    // Check if last part is a US state code (2 letters)
+    const lastPartUpper = lastPart.toUpperCase();
+    if (usStateCodes.has(lastPartUpper) && lastPart.length === 2) {
+      country = 'United States';
+      state = lastPartUpper;
+      if (parts.length >= 2) {
+        city = parts[parts.length - 2].replace(/\d+/g, '').trim();
+      }
+      return { city, state, country };
+    }
+
+    // Check if last part is explicitly a country name
+    if (countryNames.has(lastPartLower)) {
+      if (lastPartLower === 'usa' || lastPartLower === 'united states') {
+        country = 'United States';
+      } else if (lastPartLower === 'uk' || lastPartLower === 'united kingdom') {
+        country = 'United Kingdom';
+      } else {
+        country = lastPart; // Capitalize first letter properly
+        country = country.charAt(0).toUpperCase() + country.slice(1).toLowerCase();
+      }
+
+      if (parts.length >= 2) {
+        const secondLast = parts[parts.length - 2].replace(/\d+/g, '').trim();
+
+        // Check if second-to-last is a state/province for this country
+        if (country === 'United States' && usStateCodes.has(secondLast.toUpperCase()) && secondLast.length === 2) {
+          state = secondLast.toUpperCase();
+          if (parts.length >= 3) {
+            city = parts[parts.length - 3].replace(/\d+/g, '').trim();
+          }
+        } else if (statePatterns[country]) {
+          const stateMatch = statePatterns[country].find(s => secondLast.toLowerCase().includes(s));
+          if (stateMatch) {
+            state = secondLast;
+            if (parts.length >= 3) {
+              city = parts[parts.length - 3].replace(/\d+/g, '').trim();
+            }
+          } else {
+            city = secondLast;
+          }
+        } else {
+          city = secondLast;
+        }
+      }
+      return { city, state, country };
+    }
+
+    // Check if last part matches a state/province pattern
+    for (const [countryKey, patterns] of Object.entries(statePatterns)) {
+      const matchedPattern = patterns.find(p => lastPartLower.includes(p) || lastPartLower === p);
+      if (matchedPattern) {
+        country = countryKey;
+        state = lastPart;
+        if (parts.length >= 2) {
+          city = parts[parts.length - 2].replace(/\d+/g, '').trim();
+        }
+        return { city, state, country };
+      }
+    }
+
+    // Default: assume US format "Street, City, State ZIP"
+    if (parts.length >= 3) {
+      // Try to extract state code from last part (might include ZIP)
+      const stateMatch = lastPart.match(/\b([A-Z]{2})\b/);
+      if (stateMatch && usStateCodes.has(stateMatch[1])) {
+        country = 'United States';
+        state = stateMatch[1];
+        city = parts[parts.length - 2].replace(/\d+/g, '').trim();
+      } else {
+        // Unknown format - use last as country, second-to-last as city
+        city = parts[parts.length - 2].replace(/\d+/g, '').trim();
+        country = 'Other';
+      }
+    } else if (parts.length === 2) {
+      city = parts[0].replace(/\d+/g, '').trim();
+      country = 'Other';
+    } else {
+      city = parts[0].replace(/\d+/g, '').trim();
+      country = 'Other';
+    }
+
+    return { city, state, country };
+  };
+
+  // Create hierarchical location string
+  const getLocationHierarchy = (address: string): string => {
+    const { city, state, country } = parseAddress(address);
+
+    // For addresses with states/provinces
+    if (state && state !== country) {
+      return `${city}, ${state}, ${country}`;
+    }
+
+    // For addresses without state
+    return `${city}, ${country}`;
+  };
+
+  // Build hierarchical location structure
+  interface LocationHierarchy {
+    countries: Map<string, {
+      states: Map<string, {
+        cities: Set<string>;
+        fullLocations: string[];
+      }>;
+    }>;
+  }
+
+  const buildLocationHierarchy = (): LocationHierarchy => {
+    const hierarchy: LocationHierarchy = {
+      countries: new Map(),
+    };
+
+    allMatches.forEach((restaurant) => {
+      const { city, state, country } = parseAddress(restaurant.address);
+      const fullLocation = getLocationHierarchy(restaurant.address);
+
+      if (!hierarchy.countries.has(country)) {
+        hierarchy.countries.set(country, { states: new Map() });
+      }
+
+      const countryData = hierarchy.countries.get(country)!;
+
+      if (state && state !== country) {
+        // Has a state/province
+        if (!countryData.states.has(state)) {
+          countryData.states.set(state, { cities: new Set(), fullLocations: [] });
+        }
+        const stateData = countryData.states.get(state)!;
+        stateData.cities.add(city);
+        if (!stateData.fullLocations.includes(fullLocation)) {
+          stateData.fullLocations.push(fullLocation);
+        }
+      } else {
+        // Direct city without state
+        if (!countryData.states.has('_direct')) {
+          countryData.states.set('_direct', { cities: new Set(), fullLocations: [] });
+        }
+        const directData = countryData.states.get('_direct')!;
+        directData.cities.add(city);
+        if (!directData.fullLocations.includes(fullLocation)) {
+          directData.fullLocations.push(fullLocation);
+        }
+      }
+    });
+
+    return hierarchy;
+  };
+
+  // Get count of restaurants for a country
+  const getCountryRestaurantCount = (country: string): number => {
+    return allMatches.filter((restaurant) => {
+      const { country: restaurantCountry } = parseAddress(restaurant.address);
+      return restaurantCountry === country;
+    }).length;
+  };
+
+  // Get count of restaurants for a state
+  const getStateRestaurantCount = (country: string, state: string): number => {
+    return allMatches.filter((restaurant) => {
+      const { country: restaurantCountry, state: restaurantState } = parseAddress(restaurant.address);
+      return restaurantCountry === country && restaurantState === state;
+    }).length;
+  };
+
+  const toggleLocation = (location: string) => {
+    setSelectedLocations((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(location)) {
+        newSet.delete(location);
+      } else {
+        newSet.add(location);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleCountry = (country: string) => {
+    setExpandedCountries((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(country)) {
+        newSet.delete(country);
+      } else {
+        newSet.add(country);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleState = (stateKey: string) => {
+    setExpandedStates((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(stateKey)) {
+        newSet.delete(stateKey);
+      } else {
+        newSet.add(stateKey);
+      }
+      return newSet;
+    });
+  };
+
+  const clearAllFilters = () => {
+    setSelectedLocations(new Set());
+  };
+
+  const selectAllInSection = (locations: string[]) => {
+    setSelectedLocations((prev) => {
+      const newSet = new Set(prev);
+      locations.forEach((loc) => newSet.add(loc));
+      return newSet;
+    });
+  };
+
+  // Apply filtering based on selected locations
+  useEffect(() => {
+    if (selectedLocations.size === 0) {
       setMatches(allMatches);
     } else {
       const filtered = allMatches.filter((restaurant) => {
-        const addressParts = restaurant.address.split(',');
-        let cityName = 'Unknown';
-
-        if (addressParts.length >= 2) {
-          const cityPart = addressParts[addressParts.length - 2]?.trim();
-          cityName = cityPart.replace(/\d+/g, '').trim();
-        } else if (addressParts.length > 0) {
-          cityName = addressParts[0]?.trim();
-        }
-
-        const metroArea = getCityMetroArea(cityName);
-        return metroArea === location;
+        const restaurantLocation = getLocationHierarchy(restaurant.address);
+        return selectedLocations.has(restaurantLocation);
       });
       setMatches(filtered);
     }
-  };
+  }, [selectedLocations, allMatches]);
 
-  // Map smaller cities to their metro areas
-  const getCityMetroArea = (city: string): string => {
-    const metroAreas: { [key: string]: string[] } = {
-      'San Francisco': ['San Francisco', 'SF', 'Oakland', 'Berkeley', 'San Mateo', 'Daly City', 'South San Francisco', 'Pacifica'],
-      'San Jose': ['San Jose', 'Santa Clara', 'Sunnyvale', 'Mountain View', 'Cupertino', 'Milpitas', 'Los Gatos', 'Saratoga'],
-      'Los Angeles': ['Los Angeles', 'LA', 'Santa Monica', 'Beverly Hills', 'West Hollywood', 'Culver City', 'Pasadena', 'Glendale', 'Burbank'],
-      'New York': ['New York', 'NYC', 'Manhattan', 'Brooklyn', 'Queens', 'Bronx', 'Staten Island', 'Jersey City', 'Hoboken'],
-      'Chicago': ['Chicago', 'Evanston', 'Oak Park', 'Cicero', 'Skokie'],
-      'Seattle': ['Seattle', 'Bellevue', 'Redmond', 'Tacoma', 'Kirkland'],
-      'Boston': ['Boston', 'Cambridge', 'Somerville', 'Brookline', 'Newton'],
-      'Austin': ['Austin', 'Round Rock', 'Cedar Park', 'Pflugerville'],
-      'Denver': ['Denver', 'Aurora', 'Lakewood', 'Thornton'],
-      'Miami': ['Miami', 'Miami Beach', 'Coral Gables', 'Hialeah', 'Fort Lauderdale'],
-    };
-
-    const normalizedCity = city.trim();
-
-    for (const [metro, cities] of Object.entries(metroAreas)) {
-      if (cities.some(c => normalizedCity.toLowerCase().includes(c.toLowerCase()))) {
-        return metro;
-      }
-    }
-
-    return normalizedCity;
-  };
-
-  const getUniqueLocations = (): string[] => {
-    const locationMap = new Map<string, number>();
-
-    allMatches.forEach((restaurant) => {
-      const addressParts = restaurant.address.split(',');
-      // Get city name - typically second to last part in address format
-      // Format: "Street, City, State ZIP"
-      let cityName = 'Unknown';
-
-      if (addressParts.length >= 2) {
-        const cityPart = addressParts[addressParts.length - 2]?.trim();
-        // Remove any numbers (ZIP codes) from the city part
-        cityName = cityPart.replace(/\d+/g, '').trim();
-      } else if (addressParts.length > 0) {
-        cityName = addressParts[0]?.trim();
-      }
-
-      // Map to metro area
-      const metroArea = getCityMetroArea(cityName);
-      locationMap.set(metroArea, (locationMap.get(metroArea) || 0) + 1);
-    });
-
-    // Sort by count (most restaurants first)
-    const sortedLocations = Array.from(locationMap.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([location]) => location);
-
-    return ['All Locations', ...sortedLocations];
-  };
-
-  // Group restaurants by city for display
+  // Group restaurants by location for display
   const groupedRestaurants = useMemo(() => {
-    if (selectedLocation === 'All Locations') {
+    if (selectedLocations.size === 0) {
       const grouped = new Map<string, Restaurant[]>();
 
       matches.forEach((restaurant) => {
-        const addressParts = restaurant.address.split(',');
-        let cityName = 'Unknown';
+        const location = getLocationHierarchy(restaurant.address);
 
-        if (addressParts.length >= 2) {
-          const cityPart = addressParts[addressParts.length - 2]?.trim();
-          cityName = cityPart.replace(/\d+/g, '').trim();
-        } else if (addressParts.length > 0) {
-          cityName = addressParts[0]?.trim();
+        if (!grouped.has(location)) {
+          grouped.set(location, []);
         }
-
-        const metroArea = getCityMetroArea(cityName);
-
-        if (!grouped.has(metroArea)) {
-          grouped.set(metroArea, []);
-        }
-        grouped.get(metroArea)!.push(restaurant);
+        grouped.get(location)!.push(restaurant);
       });
 
-      // Convert to section list format
+      // Convert to section list format and sort
       return Array.from(grouped.entries())
-        .map(([city, restaurants]) => ({
-          title: city,
+        .map(([location, restaurants]) => ({
+          title: location,
           data: restaurants,
         }))
-        .sort((a, b) => b.data.length - a.data.length); // Sort by most restaurants
+        .sort((a, b) => {
+          // Sort by restaurant count (descending), then alphabetically
+          if (b.data.length !== a.data.length) {
+            return b.data.length - a.data.length;
+          }
+          return a.title.localeCompare(b.title);
+        });
     } else {
-      // Single section when filtered
-      return [
-        {
-          title: selectedLocation,
-          data: matches,
-        },
-      ];
+      // Multiple sections when filtered
+      const grouped = new Map<string, Restaurant[]>();
+
+      matches.forEach((restaurant) => {
+        const location = getLocationHierarchy(restaurant.address);
+
+        if (!grouped.has(location)) {
+          grouped.set(location, []);
+        }
+        grouped.get(location)!.push(restaurant);
+      });
+
+      return Array.from(grouped.entries())
+        .map(([location, restaurants]) => ({
+          title: location,
+          data: restaurants,
+        }))
+        .sort((a, b) => {
+          if (b.data.length !== a.data.length) {
+            return b.data.length - a.data.length;
+          }
+          return a.title.localeCompare(b.title);
+        });
     }
-  }, [matches, selectedLocation]);
+  }, [matches, selectedLocations]);
 
   const handleShare = (restaurant: Restaurant) => {
     setSelectedRestaurant(restaurant);
@@ -300,7 +498,7 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
           <Text style={styles.headerTitle}>Your Matches</Text>
           <View style={styles.matchCountBadge}>
             <LinearGradient
-              colors={['#14B8A6', '#6EE7B7']}
+              colors={[Colors.accent, Colors.accentLight]}
               style={styles.badgeGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -317,45 +515,190 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
       {allMatches.length > 0 && (
         <View style={styles.filterSection}>
           <TouchableOpacity
-            style={styles.modernDropdownButton}
-            onPress={() => setShowLocationDropdown(!showLocationDropdown)}
+            style={styles.filterButton}
+            onPress={() => setShowLocationFilter(!showLocationFilter)}
           >
-            <View style={styles.dropdownIconContainer}>
-              <Ionicons name="location" size={18} color={Colors.gold} />
+            <View style={styles.filterButtonLeft}>
+              <View style={styles.dropdownIconContainer}>
+                <Ionicons name="filter" size={18} color={Colors.gold} />
+              </View>
+              <Text style={styles.filterButtonText}>
+                {selectedLocations.size === 0
+                  ? 'Filter by Location'
+                  : `${selectedLocations.size} location${selectedLocations.size === 1 ? '' : 's'} selected`}
+              </Text>
             </View>
-            <Text style={styles.dropdownButtonText}>{selectedLocation}</Text>
             <Ionicons
-              name={showLocationDropdown ? 'chevron-up' : 'chevron-down'}
+              name={showLocationFilter ? 'chevron-up' : 'chevron-down'}
               size={18}
               color={Colors.textSecondary}
             />
           </TouchableOpacity>
 
-          {showLocationDropdown && (
-            <View style={styles.dropdownMenu}>
-              <ScrollView style={styles.dropdownScroll} nestedScrollEnabled={true}>
-                {getUniqueLocations().map((location) => (
-                  <TouchableOpacity
-                    key={location}
-                    style={[
-                      styles.dropdownItem,
-                      selectedLocation === location && styles.dropdownItemSelected,
-                    ]}
-                    onPress={() => filterByLocation(location)}
-                  >
-                    <Text
-                      style={[
-                        styles.dropdownItemText,
-                        selectedLocation === location && styles.dropdownItemTextSelected,
-                      ]}
-                    >
-                      {location}
-                    </Text>
-                    {selectedLocation === location && (
-                      <Ionicons name="checkmark" size={20} color={Colors.gold} />
-                    )}
+          {showLocationFilter && (
+            <View style={styles.filterPanel}>
+              <View style={styles.filterHeader}>
+                <Text style={styles.filterHeaderTitle}>Select Locations</Text>
+                {selectedLocations.size > 0 && (
+                  <TouchableOpacity onPress={clearAllFilters} style={styles.clearButton}>
+                    <Text style={styles.clearButtonText}>Clear All</Text>
                   </TouchableOpacity>
-                ))}
+                )}
+              </View>
+
+              <ScrollView style={styles.filterScroll} nestedScrollEnabled={true}>
+                {Array.from(buildLocationHierarchy().countries.entries())
+                  .sort((a, b) => {
+                    // Sort by restaurant count (descending), then alphabetically
+                    const countA = getCountryRestaurantCount(a[0]);
+                    const countB = getCountryRestaurantCount(b[0]);
+                    if (countB !== countA) return countB - countA;
+                    return a[0].localeCompare(b[0]);
+                  })
+                  .map(([country, countryData]) => {
+                    const isCountryExpanded = expandedCountries.has(country);
+                    const restaurantCount = getCountryRestaurantCount(country);
+
+                    return (
+                      <View key={country} style={styles.hierarchySection}>
+                        {/* Country Header */}
+                        <TouchableOpacity
+                          style={styles.hierarchyHeader}
+                          onPress={() => toggleCountry(country)}
+                        >
+                          <View style={styles.hierarchyHeaderLeft}>
+                            <Ionicons
+                              name={isCountryExpanded ? 'chevron-down' : 'chevron-forward'}
+                              size={20}
+                              color={Colors.gold}
+                            />
+                            <Ionicons name="earth" size={18} color={Colors.gold} />
+                            <Text style={styles.hierarchyHeaderText}>{country}</Text>
+                          </View>
+                          <Text style={styles.countBadge}>{restaurantCount}</Text>
+                        </TouchableOpacity>
+
+                        {/* States */}
+                        {isCountryExpanded && (
+                          <>
+                            {countryData.states.size === 0 ? (
+                              <View style={styles.emptyStateContainer}>
+                                <Text style={styles.emptyStateText}>
+                                  No restaurants have been liked from here :/
+                                </Text>
+                              </View>
+                            ) : (
+                              Array.from(countryData.states.entries())
+                                .sort((a, b) => {
+                                  // Direct cities first, then sort states
+                                  if (a[0] === '_direct') return -1;
+                                  if (b[0] === '_direct') return 1;
+                                  return a[0].localeCompare(b[0]);
+                                })
+                                .map(([state, stateData]) => {
+                                  const stateKey = `${country}-${state}`;
+                                  const isStateExpanded = expandedStates.has(stateKey);
+                                  const isDirect = state === '_direct';
+
+                                  if (isDirect) {
+                                    // Direct cities without state grouping
+                                    return (
+                                      <View key={stateKey} style={styles.cityList}>
+                                        {stateData.fullLocations
+                                          .sort((a, b) => a.localeCompare(b))
+                                          .map((location) => (
+                                            <TouchableOpacity
+                                              key={location}
+                                              style={styles.checkboxItem}
+                                              onPress={() => toggleLocation(location)}
+                                            >
+                                              <View style={styles.checkboxContainer}>
+                                                <View
+                                                  style={[
+                                                    styles.checkbox,
+                                                    selectedLocations.has(location) &&
+                                                      styles.checkboxChecked,
+                                                  ]}
+                                                >
+                                                  {selectedLocations.has(location) && (
+                                                    <Ionicons
+                                                      name="checkmark"
+                                                      size={16}
+                                                      color={Colors.background}
+                                                    />
+                                                  )}
+                                                </View>
+                                                <Text style={styles.checkboxLabel}>{location}</Text>
+                                              </View>
+                                            </TouchableOpacity>
+                                          ))}
+                                      </View>
+                                    );
+                                  }
+
+                                  const stateCount = getStateRestaurantCount(country, state);
+
+                                  return (
+                                    <View key={stateKey} style={styles.stateSection}>
+                                      {/* State Header */}
+                                      <TouchableOpacity
+                                        style={styles.stateHeader}
+                                        onPress={() => toggleState(stateKey)}
+                                      >
+                                        <View style={styles.hierarchyHeaderLeft}>
+                                          <Ionicons
+                                            name={isStateExpanded ? 'chevron-down' : 'chevron-forward'}
+                                            size={18}
+                                            color={Colors.textSecondary}
+                                          />
+                                          <Ionicons name="map" size={16} color={Colors.textSecondary} />
+                                          <Text style={styles.stateHeaderText}>{state}</Text>
+                                        </View>
+                                        <Text style={styles.countBadgeSmall}>{stateCount}</Text>
+                                      </TouchableOpacity>
+
+                                      {/* Cities */}
+                                      {isStateExpanded && (
+                                        <View style={styles.cityList}>
+                                          {stateData.fullLocations
+                                            .sort((a, b) => a.localeCompare(b))
+                                            .map((location) => (
+                                              <TouchableOpacity
+                                                key={location}
+                                                style={styles.checkboxItem}
+                                                onPress={() => toggleLocation(location)}
+                                              >
+                                                <View style={styles.checkboxContainer}>
+                                                  <View
+                                                    style={[
+                                                      styles.checkbox,
+                                                      selectedLocations.has(location) &&
+                                                        styles.checkboxChecked,
+                                                    ]}
+                                                  >
+                                                    {selectedLocations.has(location) && (
+                                                      <Ionicons
+                                                        name="checkmark"
+                                                        size={16}
+                                                        color={Colors.background}
+                                                      />
+                                                    )}
+                                                  </View>
+                                                  <Text style={styles.checkboxLabel}>{location}</Text>
+                                                </View>
+                                              </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                      )}
+                                    </View>
+                                  );
+                                })
+                            )}
+                          </>
+                        )}
+                      </View>
+                    );
+                  })}
               </ScrollView>
             </View>
           )}
@@ -645,7 +988,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#14B8A6',
+    shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -832,21 +1175,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     backgroundColor: Colors.background,
   },
-  modernDropdownButton: {
+  filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: Colors.surface,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border,
-    gap: 12,
     shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+  },
+  filterButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  filterButtonText: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 15,
+    color: Colors.textLight,
+    flex: 1,
   },
   dropdownIconContainer: {
     width: 32,
@@ -856,44 +1211,150 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  dropdownButtonText: {
-    fontFamily: 'DMSans_600SemiBold',
-    fontSize: 15,
-    color: Colors.textLight,
-    flex: 1,
-  },
-  dropdownMenu: {
-    marginTop: 8,
+  filterPanel: {
+    marginTop: 12,
     backgroundColor: Colors.card,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.border,
-    maxHeight: 250,
+    maxHeight: 400,
     overflow: 'hidden',
   },
-  dropdownScroll: {
-    maxHeight: 250,
-  },
-  dropdownItem: {
+  filterHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 14,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    backgroundColor: Colors.surface,
+  },
+  filterHeaderTitle: {
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 16,
+    color: Colors.gold,
+  },
+  clearButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: Colors.surface,
+  },
+  clearButtonText: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 14,
+    color: Colors.error,
+  },
+  filterScroll: {
+    maxHeight: 350,
+  },
+  hierarchySection: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  dropdownItemSelected: {
+  hierarchyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     backgroundColor: Colors.surface,
   },
-  dropdownItemText: {
-    fontFamily: 'DMSans_500Medium',
-    fontSize: 15,
-    color: Colors.textLight,
+  hierarchyHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     flex: 1,
   },
-  dropdownItemTextSelected: {
+  hierarchyHeaderText: {
     fontFamily: 'DMSans_700Bold',
+    fontSize: 16,
+    color: Colors.textLight,
+  },
+  countBadge: {
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 14,
     color: Colors.gold,
+    backgroundColor: Colors.card,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    minWidth: 28,
+    textAlign: 'center',
+  },
+  countBadgeSmall: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 13,
+    color: Colors.textSecondary,
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  emptyStateContainer: {
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    backgroundColor: Colors.card,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 14,
+    color: Colors.textMuted,
+    textAlign: 'center',
+  },
+  stateSection: {
+    backgroundColor: Colors.card,
+  },
+  stateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    backgroundColor: Colors.card,
+  },
+  stateHeaderText: {
+    fontFamily: 'DMSans_600SemiBold',
+    fontSize: 15,
+    color: Colors.textLight,
+  },
+  cityList: {
+    backgroundColor: Colors.card,
+  },
+  checkboxItem: {
+    paddingVertical: 10,
+    paddingHorizontal: 40,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.gold,
+    borderColor: Colors.gold,
+  },
+  checkboxLabel: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 14,
+    color: Colors.textLight,
+    flex: 1,
   },
   modernCuisineContainer: {
     flexDirection: 'row',

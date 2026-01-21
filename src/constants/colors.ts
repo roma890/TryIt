@@ -1,39 +1,39 @@
-// Fresh, modern design with mint green & teal accents
+// Warm romantic red/burgundy theme with cream accents
 export const Colors = {
-  // Primary colors - Deep teal gradient
-  primary: '#0D1B2A',       // Deep navy-teal (background)
-  primaryLight: '#1B263B',  // Lighter navy-teal
-  primaryDark: '#000814',   // Darkest teal-black
+  // Primary colors - Warm red/burgundy gradient
+  primary: '#8B1538',       // Deep burgundy red
+  primaryLight: '#C41E3A',  // Crimson red
+  primaryDark: '#6B0F2A',   // Darkest burgundy
 
-  // Accent colors - Mint & Teal
-  accent: '#14B8A6',        // Vibrant teal accent
-  accentLight: '#2DD4BF',   // Light teal/cyan
-  highlight: '#6EE7B7',     // Fresh mint green highlight
+  // Accent colors - Warm coral & rose gold
+  accent: '#FF6B6B',        // Warm coral red
+  accentLight: '#FF9A8B',   // Light coral
+  highlight: '#D4876F',     // Warm terracotta
 
-  // Backgrounds
-  background: '#0D1B2A',    // Main background - deep teal-navy
-  surface: '#1B263B',       // Card/surface background
-  card: '#252F3F',          // Card background - slightly lighter
+  // Backgrounds - Warmer tones
+  background: '#1F0D12',    // Deep warm burgundy-black
+  surface: '#2D1420',       // Card/surface background - dark burgundy
+  card: '#3D1E2C',          // Card background - slightly lighter burgundy
 
-  // Text colors
-  text: '#1B263B',          // Primary text - dark teal
-  textLight: '#F0FDFA',     // Light text with mint tint
-  textSecondary: '#94A3B8', // Secondary text - slate
-  textMuted: '#CBD5E1',     // Muted text - light slate
+  // Text colors - Warm cream instead of white
+  text: '#2D1420',          // Primary text - dark burgundy
+  textLight: '#FFF8F0',     // Warm cream for light text
+  textSecondary: '#E8C4B8', // Warm peach secondary text
+  textMuted: '#D4A89C',     // Warm beige muted text
 
-  // Status colors
-  success: '#10B981',       // Emerald green
-  error: '#EF4444',         // Modern red
-  warning: '#F59E0B',       // Amber warning
+  // Status colors - Warmer tones
+  success: '#4CAF50',       // Green for success
+  error: '#FF6B6B',         // Warm red for errors
+  warning: '#FFB347',       // Warm orange warning
 
   // UI elements
-  border: '#334155',        // Slate border
-  shadow: 'rgba(0, 0, 0, 0.2)', // Deeper shadow
-  overlay: 'rgba(13, 27, 42, 0.9)', // Deep teal overlay
-  divider: '#334155',       // Slate divider
+  border: '#4D2A39',        // Burgundy border
+  shadow: 'rgba(0, 0, 0, 0.3)', // Deep shadow
+  overlay: 'rgba(139, 21, 56, 0.9)', // Burgundy overlay
+  divider: '#4D2A39',       // Burgundy divider
 
   // Special
-  heart: '#EC4899',         // Pink heart for contrast
-  star: '#FBBF24',          // Warm yellow star
-  gold: '#6EE7B7',          // Mint green (replacing gold)
+  heart: '#FF6B6B',         // Warm red heart
+  star: '#FFD700',          // Gold star
+  gold: '#D4876F',          // Warm rose gold
 };

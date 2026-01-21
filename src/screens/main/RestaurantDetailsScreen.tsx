@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,8 +9,11 @@ import {
   ActivityIndicator,
   Dimensions,
   Linking,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { Restaurant } from '../../types';
 import { googlePlacesService } from '../../services/api/googlePlaces.service';
 import { Colors } from '../../constants/colors';
@@ -30,10 +33,83 @@ export const RestaurantDetailsScreen: React.FC<RestaurantDetailsScreenProps> = (
   const [restaurant, setRestaurant] = useState<Restaurant | null>(initialRestaurant);
   const [loading, setLoading] = useState(true);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const slideAnimRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadRestaurantDetails();
   }, []);
+
+  // Auto-slide images every 4 seconds
+  useEffect(() => {
+    if (!restaurant?.photos || restaurant.photos.length <= 1) return;
+
+    const startAutoSlide = () => {
+      slideAnimRef.current = setInterval(() => {
+        changePhoto('next');
+      }, 4000);
+    };
+
+    startAutoSlide();
+
+    return () => {
+      if (slideAnimRef.current) {
+        clearInterval(slideAnimRef.current);
+      }
+    };
+  }, [restaurant?.photos, selectedPhotoIndex]);
+
+  const changePhoto = (direction: 'next' | 'prev') => {
+    if (!restaurant?.photos || restaurant.photos.length <= 1) return;
+
+    // Fade out
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      // Change photo
+      setSelectedPhotoIndex((prevIndex) => {
+        if (direction === 'next') {
+          return (prevIndex + 1) % restaurant.photos!.length;
+        } else {
+          return prevIndex === 0 ? restaurant.photos!.length - 1 : prevIndex - 1;
+        }
+      });
+
+      // Fade in
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
+
+  const handleThumbnailPress = (index: number) => {
+    if (index === selectedPhotoIndex) return;
+
+    // Reset auto-slide timer
+    if (slideAnimRef.current) {
+      clearInterval(slideAnimRef.current);
+    }
+
+    // Fade out
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setSelectedPhotoIndex(index);
+
+      // Fade in
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
 
   const loadRestaurantDetails = async () => {
     try {
@@ -98,39 +174,53 @@ export const RestaurantDetailsScreen: React.FC<RestaurantDetailsScreenProps> = (
       {/* Photo Gallery */}
       {mainPhotos.length > 0 && (
         <View style={styles.photoGallery}>
-          <Image
+          <Animated.Image
             source={{ uri: mainPhotos[selectedPhotoIndex] }}
-            style={styles.mainPhoto}
+            style={[styles.mainPhoto, { opacity: fadeAnim }]}
             resizeMode="cover"
           />
           <LinearGradient
-            colors={['transparent', 'rgba(15, 23, 42, 0.7)']}
+            colors={['transparent', 'rgba(139, 21, 56, 0.7)']}
             style={styles.photoOverlay}
           />
+
+          {/* Navigation Arrows */}
           {mainPhotos.length > 1 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.photoThumbnails}
-              contentContainerStyle={styles.photoThumbnailsContent}
-            >
-              {mainPhotos.map((photo, index) => (
-                <TouchableOpacity
-                  key={index}
-                  onPress={() => setSelectedPhotoIndex(index)}
-                  style={[
-                    styles.thumbnail,
-                    selectedPhotoIndex === index && styles.thumbnailSelected,
-                  ]}
-                >
-                  <Image
-                    source={{ uri: photo }}
-                    style={styles.thumbnailImage}
-                    resizeMode="cover"
+            <>
+              <TouchableOpacity
+                style={[styles.navButton, styles.navButtonLeft]}
+                onPress={() => changePhoto('prev')}
+              >
+                <Ionicons name="chevron-back" size={32} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.navButton, styles.navButtonRight]}
+                onPress={() => changePhoto('next')}
+              >
+                <Ionicons name="chevron-forward" size={32} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              {/* Photo indicator dots */}
+              <View style={styles.photoIndicator}>
+                {mainPhotos.map((_, index) => (
+                  <View
+                    key={index}
+                    style={[
+                      styles.indicatorDot,
+                      selectedPhotoIndex === index && styles.indicatorDotActive,
+                    ]}
                   />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                ))}
+              </View>
+
+              {/* Photo counter */}
+              <View style={styles.photoCounter}>
+                <Text style={styles.photoCounterText}>
+                  {selectedPhotoIndex + 1} / {mainPhotos.length}
+                </Text>
+              </View>
+            </>
           )}
         </View>
       )}
@@ -323,30 +413,64 @@ const styles = StyleSheet.create({
     right: 0,
     height: 80,
   },
-  photoThumbnails: {
+  navButton: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -24,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 24,
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  navButtonLeft: {
+    left: 16,
+  },
+  navButtonRight: {
+    right: 16,
+  },
+  photoIndicator: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  indicatorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  indicatorDotActive: {
+    backgroundColor: '#FFFFFF',
+    width: 24,
+  },
+  photoCounter: {
     position: 'absolute',
     bottom: 16,
-    left: 0,
-    right: 0,
+    left: '50%',
+    transform: [{ translateX: -30 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
-  photoThumbnailsContent: {
-    paddingHorizontal: 16,
-    gap: 12,
-  },
-  thumbnail: {
-    width: 70,
-    height: 70,
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: 'transparent',
-  },
-  thumbnailSelected: {
-    borderColor: Colors.primary,
-  },
-  thumbnailImage: {
-    width: '100%',
-    height: '100%',
+  photoCounterText: {
+    fontFamily: 'DMSans_700Bold',
+    fontSize: 14,
+    color: '#FFF8F0',
+    textAlign: 'center',
   },
   infoSection: {
     padding: 20,

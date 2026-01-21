@@ -196,18 +196,16 @@ export const FilterScreen: React.FC<FilterScreenProps> = ({
       setLoadingLocation(true);
       setSuggestions([]);
 
-      // Get place details using place_id
-      const geocoded = await Location.geocodeAsync(suggestion.description);
+      // Get coordinates using Google Places API with place_id
+      const coordinates = await googlePlacesService.getPlaceCoordinates(suggestion.place_id);
 
-      if (geocoded && geocoded.length > 0) {
-        const { latitude, longitude } = geocoded[0];
-
+      if (coordinates) {
         // Update filters with the new location
         setFilters((prev) => ({
           ...prev,
           location: {
-            latitude,
-            longitude,
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude,
           },
         }));
 
@@ -215,7 +213,7 @@ export const FilterScreen: React.FC<FilterScreenProps> = ({
         setShowLocationInput(false);
         setLocationInput('');
       } else {
-        Alert.alert('Error', 'Location not found. Please try a different search.');
+        Alert.alert('Error', 'Could not find location coordinates. Please try a different search.');
       }
 
       setLoadingLocation(false);

@@ -185,6 +185,40 @@ export const googlePlacesService = {
       return [];
     }
   },
+
+  // Get geocode coordinates from place_id
+  getPlaceCoordinates: async (placeId: string): Promise<{ latitude: number; longitude: number } | null> => {
+    try {
+      const response = await axios.get(
+        `${GOOGLE_PLACES_BASE_URL}/details/json`,
+        {
+          params: {
+            place_id: placeId,
+            fields: 'geometry',
+            key: GOOGLE_PLACES_API_KEY,
+          },
+        }
+      );
+
+      if (response.data.status !== 'OK') {
+        console.error(`Google Places API error: ${response.data.status}`);
+        return null;
+      }
+
+      const location = response.data.result?.geometry?.location;
+      if (location) {
+        return {
+          latitude: location.lat,
+          longitude: location.lng,
+        };
+      }
+
+      return null;
+    } catch (error: any) {
+      console.error('Error getting place coordinates:', error);
+      return null;
+    }
+  },
 };
 
 // Helper functions
