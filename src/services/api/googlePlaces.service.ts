@@ -23,6 +23,13 @@ export const googlePlacesService = {
     try {
       const { latitude, longitude, radius, type = 'restaurant', ...otherParams } = params;
 
+      console.log('Google Places API Request:', {
+        location: `${latitude},${longitude}`,
+        radius,
+        type,
+        otherParams
+      });
+
       const response = await axios.get(
         `${GOOGLE_PLACES_BASE_URL}/nearbysearch/json`,
         {
@@ -36,8 +43,17 @@ export const googlePlacesService = {
         }
       );
 
-      if (response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
-        throw new Error(`Google Places API error: ${response.data.status}`);
+      console.log('Google Places API Response Status:', response.data.status);
+      console.log('Google Places API Results Count:', response.data.results?.length || 0);
+
+      if (response.data.status === 'ZERO_RESULTS') {
+        console.log('No restaurants found in this area');
+        return [];
+      }
+
+      if (response.data.status !== 'OK') {
+        console.error('Google Places API error:', response.data.status, response.data.error_message);
+        throw new Error(`Google Places API error: ${response.data.status} - ${response.data.error_message || 'Unknown error'}`);
       }
 
       // Filter out non-restaurant places (hotels, lodging, spas, etc.)
@@ -72,6 +88,8 @@ export const googlePlacesService = {
         return !hasExcludedType && hasRestaurantType;
       });
 
+      console.log(`After filtering: ${filteredResults.length} restaurants (from ${response.data.results.length} total results)`);
+
       const restaurants: Restaurant[] = filteredResults.map((place: any) => ({
         id: place.place_id,
         placeId: place.place_id,
@@ -95,7 +113,10 @@ export const googlePlacesService = {
 
       return restaurants;
     } catch (error: any) {
-      console.error('Error searching nearby restaurants:', error);
+      console.error('Error searching nearby restaurants:', error.message || error);
+      if (error.response) {
+        console.error('API Response Error:', error.response.data);
+      }
       throw error;
     }
   },

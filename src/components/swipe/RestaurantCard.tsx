@@ -101,7 +101,7 @@ export const RestaurantCard: React.FC<RestaurantCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     width: width - 40,
-    height: height * 0.7,
+    height: height * 0.6, // Reduced from 0.7 to 0.6 to show buttons better
     borderRadius: 20,
     backgroundColor: Colors.surface,
     shadowColor: '#000',
