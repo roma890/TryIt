@@ -44,7 +44,7 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
   const filters = externalFilters || {
     cuisines: [],
     priceRange: ['$', '$$', '$$$', '$$$$'],
-    radius: 5000,
+    radius: 10000, // 10km default radius
     dietaryRestrictions: [],
     allergies: [],
     openNow: false,
@@ -101,36 +101,67 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
         location = await getUserLocation();
       }
 
-      const results = await googlePlacesService.searchNearbyRestaurants({
+      console.log('Loading restaurants for location:', location);
+      console.log('Search radius:', filters.radius);
+
+      // Try with current radius first
+      let results = await googlePlacesService.searchNearbyRestaurants({
         latitude: location.latitude,
         longitude: location.longitude,
         radius: filters.radius,
         opennow: filters.openNow,
       });
 
+      console.log(`Found ${results.length} restaurants from API`);
+
+      // If no results, try with progressively larger radius (up to 50km)
+      if (results.length === 0) {
+        const radiusesToTry = [10000, 25000, 50000]; // 10km, 25km, 50km
+
+        for (const radius of radiusesToTry) {
+          console.log(`Retrying with ${radius}m radius...`);
+          results = await googlePlacesService.searchNearbyRestaurants({
+            latitude: location.latitude,
+            longitude: location.longitude,
+            radius: radius,
+            opennow: false, // Disable openNow for wider search
+          });
+
+          if (results.length > 0) {
+            console.log(`Found ${results.length} restaurants with ${radius}m radius`);
+            break;
+          }
+        }
+      }
+
       // Get liked restaurants to exclude from discover feed
       const likedRestaurantIds = await swipeService.getLikedRestaurants(userId);
+      console.log(`User has ${likedRestaurantIds.length} liked restaurants`);
 
       // Apply additional filters
       let filtered = results;
 
       // Exclude restaurants that user has already liked
       filtered = filtered.filter((r) => !likedRestaurantIds.includes(r.id));
+      console.log(`${filtered.length} restaurants after excluding liked ones`);
 
       if (filters.cuisines.length > 0) {
         filtered = filtered.filter((r) =>
           r.cuisine.some((c) => filters.cuisines.includes(c))
         );
+        console.log(`${filtered.length} restaurants after cuisine filter`);
       }
 
       if (filters.priceRange.length > 0) {
         filtered = filtered.filter((r) =>
           filters.priceRange.includes(r.priceLevel)
         );
+        console.log(`${filtered.length} restaurants after price filter`);
       }
 
       if (filters.minRating) {
         filtered = filtered.filter((r) => r.rating >= filters.minRating!);
+        console.log(`${filtered.length} restaurants after rating filter`);
       }
 
       // Remove duplicates based on restaurant ID
@@ -139,12 +170,13 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
           index === self.findIndex((r) => r.id === restaurant.id)
       );
 
+      console.log(`Final result: ${uniqueRestaurants.length} unique restaurants`);
       setRestaurants(uniqueRestaurants);
       setLoading(false);
     } catch (error) {
       console.error('Error loading restaurants:', error);
       setLoading(false);
-      Alert.alert('Error', 'Failed to load restaurants');
+      Alert.alert('Error', 'Failed to load restaurants. Please check your internet connection.');
     }
   };
 
@@ -295,26 +327,28 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
           disableBottomSwipe
           animateCardOpacity
           verticalSwipe={false}
+          horizontalThreshold={20}
+          verticalThreshold={20}
           overlayLabels={{
             left: {
               title: 'PASS',
               style: {
                 label: {
                   backgroundColor: '#EF4444',
-                  borderColor: '#EF4444',
+                  borderColor: '#fff',
                   color: '#fff',
-                  borderWidth: 2,
-                  fontSize: 26,
+                  borderWidth: 3,
+                  fontSize: 28,
                   fontWeight: 'bold',
                   padding: 12,
-                  borderRadius: 16,
+                  borderRadius: 14,
                 },
                 wrapper: {
                   flexDirection: 'column',
-                  alignItems: 'flex-end',
+                  alignItems: 'flex-start',
                   justifyContent: 'flex-start',
-                  marginTop: 30,
-                  marginLeft: -30,
+                  marginTop: 40,
+                  marginLeft: 40,
                 },
               },
             },
@@ -323,20 +357,20 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
               style: {
                 label: {
                   backgroundColor: '#10B981',
-                  borderColor: '#10B981',
+                  borderColor: '#fff',
                   color: '#fff',
-                  borderWidth: 2,
-                  fontSize: 26,
+                  borderWidth: 3,
+                  fontSize: 28,
                   fontWeight: 'bold',
                   padding: 12,
-                  borderRadius: 16,
+                  borderRadius: 14,
                 },
                 wrapper: {
                   flexDirection: 'column',
-                  alignItems: 'flex-start',
+                  alignItems: 'flex-end',
                   justifyContent: 'flex-start',
-                  marginTop: 30,
-                  marginLeft: 30,
+                  marginTop: 40,
+                  marginLeft: -40,
                 },
               },
             },
@@ -355,7 +389,7 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Ionicons name="close" size={32} color={Colors.textLight} />
+            <Ionicons name="close" size={24} color={Colors.textLight} />
           </LinearGradient>
         </TouchableOpacity>
 
@@ -383,7 +417,7 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Ionicons name="heart" size={32} color={Colors.textLight} />
+            <Ionicons name="heart" size={24} color={Colors.textLight} />
           </LinearGradient>
         </TouchableOpacity>
       </View>
@@ -473,6 +507,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: -40,
   },
   buttonsContainer: {
     flexDirection: 'row',
@@ -484,7 +519,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   modernActionButton: {
-    borderRadius: 36,
+    borderRadius: 28,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
@@ -493,14 +528,14 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   passButtonGradient: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
   },
   modernInfoButton: {
-    borderRadius: 32,
+    borderRadius: 24,
     overflow: 'hidden',
     shadowColor: Colors.accent,
     shadowOffset: { width: 0, height: 6 },
@@ -509,16 +544,16 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   infoButtonGradient: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },
   likeButtonGradient: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -587,8 +622,8 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   likeAnimationCard: {
-    width: 300,
-    height: 400,
+    width: 240,
+    height: 320,
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: Colors.surface,
@@ -613,7 +648,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   likeAnimationIconContainer: {
-    borderRadius: 80,
+    borderRadius: 60,
     overflow: 'hidden',
     marginBottom: 24,
     shadowColor: Colors.accent,
@@ -623,24 +658,24 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
   likeIconGradient: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
   likeAnimationText: {
     fontFamily: 'PlayfairDisplay_900Black',
-    fontSize: 56,
+    fontSize: 42,
     color: Colors.textLight,
-    marginBottom: 12,
+    marginBottom: 8,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 12,
   },
   likeAnimationRestaurantName: {
     fontFamily: 'DMSans_700Bold',
-    fontSize: 24,
+    fontSize: 18,
     color: Colors.gold,
     textAlign: 'center',
     paddingHorizontal: 20,

@@ -159,7 +159,7 @@ export const AppNavigator: React.FC<AppNavigatorProps> = ({
   const [globalFilters, setGlobalFilters] = useState<FilterOptions>({
     cuisines: [],
     priceRange: ['$', '$$', '$$$', '$$$$'],
-    radius: 5000,
+    radius: 10000, // Increased to 10km for better initial results
     dietaryRestrictions: [],
     allergies: [],
     openNow: false,
