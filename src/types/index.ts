@@ -99,6 +99,7 @@ export interface FilterOptions {
   allergies: string[];
   openNow: boolean;
   minRating?: number;
+  excludeFastFood?: boolean;
 }
 
 // Social/Feed Types

@@ -164,6 +164,35 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
         console.log(`${filtered.length} restaurants after rating filter`);
       }
 
+      // Exclude fast food restaurants if filter is enabled
+      if (filters.excludeFastFood) {
+        const fastFoodChains = [
+          'mcdonald', 'burger king', 'wendy', 'taco bell', 'kfc', 'subway',
+          'pizza hut', 'domino', 'papa john', 'arby', 'sonic', 'jack in the box',
+          'carl\'s jr', 'hardee', 'popeyes', 'chick-fil-a', 'chipotle', 'panda express',
+          'five guys', 'in-n-out', 'shake shack', 'whataburger', 'white castle',
+          'dunkin', 'starbucks', 'tim hortons', 'panera bread', 'jimmy john',
+          'firehouse subs', 'quiznos', 'blaze pizza', 'mod pizza', 'qdoba',
+          'del taco', 'el pollo loco', 'wingstop', 'buffalo wild wings', 'dairy queen',
+          'baskin-robbins', 'cold stone', 'jamba juice', 'smoothie king'
+        ];
+
+        const beforeFastFoodFilter = filtered.length;
+        const nonFastFood = filtered.filter((r) => {
+          const nameLower = r.name.toLowerCase();
+          return !fastFoodChains.some(chain => nameLower.includes(chain));
+        });
+
+        // Only apply filter if we have at least 3 non-fast-food restaurants
+        // Otherwise, keep all restaurants to avoid empty results
+        if (nonFastFood.length >= 3) {
+          filtered = nonFastFood;
+          console.log(`${filtered.length} restaurants after excluding fast food (from ${beforeFastFoodFilter})`);
+        } else {
+          console.log(`Skipping fast food filter - only ${nonFastFood.length} non-fast-food restaurants found. Keeping all ${beforeFastFoodFilter} restaurants.`);
+        }
+      }
+
       // Remove duplicates based on restaurant ID
       const uniqueRestaurants = filtered.filter(
         (restaurant, index, self) =>
@@ -193,45 +222,50 @@ export const SwipeScreen: React.FC<SwipeScreenProps> = ({
     likeAnimationScale.setValue(0);
     likeAnimationOpacity.setValue(0);
 
-    // Start animation
+    // Start animation - faster and smoother
     Animated.parallel([
       Animated.spring(likeAnimationScale, {
         toValue: 1,
-        tension: 50,
-        friction: 7,
+        tension: 80,
+        friction: 8,
         useNativeDriver: true,
       }),
       Animated.timing(likeAnimationOpacity, {
         toValue: 1,
-        duration: 300,
+        duration: 150,
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Hide after 2 seconds
+    // Hide after 1.5 seconds (faster)
     setTimeout(() => {
       Animated.parallel([
-        Animated.timing(likeAnimationScale, {
+        Animated.spring(likeAnimationScale, {
           toValue: 0,
-          duration: 200,
+          tension: 100,
+          friction: 10,
           useNativeDriver: true,
         }),
         Animated.timing(likeAnimationOpacity, {
           toValue: 0,
-          duration: 200,
+          duration: 150,
           useNativeDriver: true,
         }),
       ]).start(() => {
         setShowLikeAnimation(false);
         setLikedRestaurant(null);
       });
-    }, 2000);
+    }, 1500);
   };
 
   const handleSwipeRight = async (index: number) => {
     const restaurant = restaurants[index];
-    await swipeService.recordSwipe(userId, restaurant.id, 'right');
+    // Show animation immediately, don't wait for database
     showLikePopup(restaurant);
+    // Record swipe in background
+    swipeService.recordSwipe(userId, restaurant.id, 'right').catch(err => {
+      console.error('Error recording swipe:', err);
+    });
   };
 
   const handleCardPress = (index: number) => {

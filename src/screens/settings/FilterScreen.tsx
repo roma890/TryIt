@@ -385,6 +385,24 @@ export const FilterScreen: React.FC<FilterScreenProps> = ({
           </View>
         </View>
 
+        {/* Exclude Fast Food */}
+        <View style={styles.section}>
+          <View style={styles.switchRow}>
+            <View style={styles.switchLabelContainer}>
+              <Text style={styles.switchLabel}>No Fast Food Restaurants</Text>
+              <Text style={styles.switchSubtext}>Exclude chains like McDonald's, Subway, etc.</Text>
+            </View>
+            <Switch
+              value={filters.excludeFastFood || false}
+              onValueChange={(value) =>
+                setFilters((prev) => ({ ...prev, excludeFastFood: value }))
+              }
+              trackColor={{ false: Colors.border, true: Colors.gold }}
+              thumbColor={Colors.textLight}
+            />
+          </View>
+        </View>
+
         {/* Distance */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Distance</Text>
@@ -660,10 +678,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
     backgroundColor: Colors.card,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   chipSelected: {
     backgroundColor: Colors.gold,
     borderColor: Colors.gold,
+    shadowColor: Colors.gold,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   chipText: {
     fontFamily: 'DMSans_500Medium',
@@ -679,10 +707,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  switchLabelContainer: {
+    flex: 1,
+    marginRight: 16,
+  },
   switchLabel: {
     fontFamily: 'DMSans_500Medium',
     fontSize: 16,
     color: Colors.textLight,
+  },
+  switchSubtext: {
+    fontFamily: 'DMSans_400Regular',
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginTop: 4,
   },
   footer: {
     padding: 20,
