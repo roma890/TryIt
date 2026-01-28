@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -28,22 +28,6 @@ interface MatchesScreenProps {
   userId: string;
 }
 
-// Structured location model with stable IDs
-interface LocationData {
-  id: string; // Stable unique identifier
-  displayName: string; // UI text (can be truncated/formatted)
-  normalizedKey: string; // Normalized for matching
-  city: string;
-  state: string;
-  country: string;
-  fullAddress: string; // Original address for reference
-}
-
-// Enhanced restaurant with locationId
-interface RestaurantWithLocation extends Restaurant {
-  locationId: string;
-}
-
 export const MatchesScreen: React.FC<MatchesScreenProps> = ({
   navigation,
   userId,
@@ -62,44 +46,25 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
   const [filterNonAmerican, setFilterNonAmerican] = useState(false);
   const [selectedCuisines, setSelectedCuisines] = useState<Set<string>>(new Set());
 
-  // Helper: Check if restaurant is American
-  const isAmericanRestaurant = (restaurant: Restaurant): boolean => {
-    const { country } = parseAddress(restaurant.address);
-    return country === 'United States';
-  };
+  // Check if restaurant is in the United States
+  const isAmericanRestaurant = useCallback((restaurant: Restaurant): boolean => {
+    const address = restaurant.address.toLowerCase();
+    // Check for USA, US, or common US state patterns
+    return address.includes('usa') ||
+           address.includes('united states') ||
+           /,\s*[a-z]{2}\s*\d{5}/.test(address); // Matches ", XX 12345" zip code pattern
+  }, []);
 
-  // Parse address to extract country
-  const parseAddress = (address: string): { country: string } => {
-    const parts = address.split(',').map(p => p.trim());
-    const lastPart = parts[parts.length - 1].toLowerCase();
-
-    // US state codes
-    const usStateCodes = new Set([
-      'al', 'ak', 'az', 'ar', 'ca', 'co', 'ct', 'de', 'fl', 'ga',
-      'hi', 'id', 'il', 'in', 'ia', 'ks', 'ky', 'la', 'me', 'md',
-      'ma', 'mi', 'mn', 'ms', 'mo', 'mt', 'ne', 'nv', 'nh', 'nj',
-      'nm', 'ny', 'nc', 'nd', 'oh', 'ok', 'or', 'pa', 'ri', 'sc',
-      'sd', 'tn', 'tx', 'ut', 'vt', 'va', 'wa', 'wv', 'wi', 'wy', 'dc'
-    ]);
-
-    // Check if US
-    if (usStateCodes.has(lastPart) || lastPart === 'usa' || lastPart === 'united states') {
-      return { country: 'United States' };
-    }
-
-    return { country: 'Other' };
-  };
-
-  // Get all unique cuisines from matches
-  const getAllCuisines = (): string[] => {
+  // Get all unique cuisines from matches - memoized for performance
+  const allCuisines = useMemo(() => {
     const cuisineSet = new Set<string>();
     allMatches.forEach(restaurant => {
       restaurant.cuisine.forEach(c => cuisineSet.add(c));
     });
     return Array.from(cuisineSet).sort();
-  };
+  }, [allMatches]);
 
-  const toggleCuisine = (cuisine: string) => {
+  const toggleCuisine = useCallback((cuisine: string) => {
     setSelectedCuisines(prev => {
       const newSet = new Set(prev);
       if (newSet.has(cuisine)) {
@@ -109,34 +74,29 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setFilterAmerican(false);
     setFilterNonAmerican(false);
     setSelectedCuisines(new Set());
-  };
+  }, []);
 
-  // Apply filtering based on American/Non-American and Cuisine
+  // Apply filtering - optimized with useMemo instead of useEffect
   useEffect(() => {
-    let filtered = allMatches;
+    const filtered = allMatches.filter(restaurant => {
+      // Country filter
+      if (filterAmerican && !filterNonAmerican && !isAmericanRestaurant(restaurant)) return false;
+      if (filterNonAmerican && !filterAmerican && isAmericanRestaurant(restaurant)) return false;
 
-    // Filter by American/Non-American
-    if (filterAmerican && !filterNonAmerican) {
-      filtered = filtered.filter(r => isAmericanRestaurant(r));
-    } else if (filterNonAmerican && !filterAmerican) {
-      filtered = filtered.filter(r => !isAmericanRestaurant(r));
-    }
+      // Cuisine filter
+      if (selectedCuisines.size > 0 && !restaurant.cuisine.some(c => selectedCuisines.has(c))) return false;
 
-    // Filter by cuisine
-    if (selectedCuisines.size > 0) {
-      filtered = filtered.filter(r =>
-        r.cuisine.some(c => selectedCuisines.has(c))
-      );
-    }
+      return true;
+    });
 
     setMatches(filtered);
-  }, [filterAmerican, filterNonAmerican, selectedCuisines, allMatches]);
+  }, [filterAmerican, filterNonAmerican, selectedCuisines, allMatches, isAmericanRestaurant]);
 
   // Group restaurants by cuisine for display
   const groupedRestaurants = useMemo(() => {
@@ -237,12 +197,7 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[Colors.primaryDark, Colors.background, Colors.surface]}
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-      >
+      <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>Your Matches</Text>
           <View style={styles.matchCountBadge}>
@@ -252,14 +207,14 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             >
-              <Ionicons name="heart" size={16} color={Colors.primaryDark} />
+              <Ionicons name="heart" size={16} color={Colors.textLight} />
               <Text style={styles.matchCountText}>
                 {matches.length} {matches.length === 1 ? 'match' : 'matches'}
               </Text>
             </LinearGradient>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {allMatches.length > 0 && (
         <View style={styles.filterSection}>
@@ -312,7 +267,7 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
                       <Ionicons
                         name="flag"
                         size={18}
-                        color={filterAmerican ? Colors.background : Colors.textSecondary}
+                        color={filterAmerican ? Colors.textLight : Colors.textSecondary}
                       />
                       <Text
                         style={[
@@ -330,7 +285,7 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
                       ]}
                     >
                       {filterAmerican && (
-                        <Ionicons name="checkmark" size={16} color={Colors.background} />
+                        <Ionicons name="checkmark" size={16} color={Colors.textLight} />
                       )}
                     </View>
                   </TouchableOpacity>
@@ -346,7 +301,7 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
                       <Ionicons
                         name="earth"
                         size={18}
-                        color={filterNonAmerican ? Colors.background : Colors.textSecondary}
+                        color={filterNonAmerican ? Colors.textLight : Colors.textSecondary}
                       />
                       <Text
                         style={[
@@ -364,17 +319,17 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
                       ]}
                     >
                       {filterNonAmerican && (
-                        <Ionicons name="checkmark" size={16} color={Colors.background} />
+                        <Ionicons name="checkmark" size={16} color={Colors.textLight} />
                       )}
                     </View>
                   </TouchableOpacity>
                 </View>
 
                 {/* Cuisine Filters */}
-                {getAllCuisines().length > 0 && (
+                {allCuisines.length > 0 && (
                   <View style={styles.filterGroup}>
                     <Text style={styles.filterGroupTitle}>Cuisine</Text>
-                    {getAllCuisines().map((cuisine) => (
+                    {allCuisines.map((cuisine) => (
                       <TouchableOpacity
                         key={cuisine}
                         style={[
@@ -389,7 +344,7 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
                             size={18}
                             color={
                               selectedCuisines.has(cuisine)
-                                ? Colors.background
+                                ? Colors.textLight
                                 : Colors.textSecondary
                             }
                           />
@@ -410,7 +365,7 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
                           ]}
                         >
                           {selectedCuisines.has(cuisine) && (
-                            <Ionicons name="checkmark" size={16} color={Colors.background} />
+                            <Ionicons name="checkmark" size={16} color={Colors.textLight} />
                           )}
                         </View>
                       </TouchableOpacity>
@@ -687,20 +642,18 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 24,
+    paddingTop: 50,
+    paddingBottom: 20,
+    backgroundColor: Colors.surface,
   },
   headerContent: {
     gap: 16,
   },
   headerTitle: {
-    fontFamily: 'PlayfairDisplay_900Black',
-    fontSize: 40,
-    color: Colors.textLight,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 36,
+    color: Colors.text,
     letterSpacing: 0.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
   },
   matchCountBadge: {
     alignSelf: 'flex-start',
@@ -722,7 +675,7 @@ const styles = StyleSheet.create({
   matchCountText: {
     fontFamily: 'DMSans_700Bold',
     fontSize: 15,
-    color: Colors.primaryDark,
+    color: Colors.textLight,
     letterSpacing: 0.5,
   },
   emptyContainer: {
@@ -918,7 +871,7 @@ const styles = StyleSheet.create({
   filterButtonText: {
     fontFamily: 'DMSans_600SemiBold',
     fontSize: 15,
-    color: Colors.textLight,
+    color: Colors.text,
     flex: 1,
   },
   dropdownIconContainer: {
@@ -988,15 +941,15 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   checkboxChecked: {
-    backgroundColor: Colors.gold,
-    borderColor: Colors.gold,
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
     shadowOpacity: 0.4,
     elevation: 3,
   },
   checkboxLabel: {
     fontFamily: 'DMSans_500Medium',
     fontSize: 14,
-    color: Colors.textLight,
+    color: Colors.text,
     flex: 1,
   },
   filterGroup: {
@@ -1026,8 +979,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   filterToggleActive: {
-    backgroundColor: Colors.gold,
-    borderColor: Colors.gold,
+    backgroundColor: Colors.accent,
+    borderColor: Colors.accent,
   },
   filterToggleLeft: {
     flexDirection: 'row',
@@ -1038,11 +991,11 @@ const styles = StyleSheet.create({
   filterToggleText: {
     fontFamily: 'DMSans_500Medium',
     fontSize: 14,
-    color: Colors.textLight,
+    color: Colors.text,
   },
   filterToggleTextActive: {
     fontFamily: 'DMSans_700Bold',
-    color: Colors.background,
+    color: Colors.textLight,
   },
   modernCuisineContainer: {
     flexDirection: 'row',

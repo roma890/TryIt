@@ -46,9 +46,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
 
   return (
     <LinearGradient
-      colors={[Colors.background, Colors.primaryDark, Colors.primary, Colors.primaryLight]}
+      colors={[Colors.primaryLight, Colors.accent, Colors.highlight]}
       start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      end={{ x: 0, y: 1 }}
       style={styles.gradient}
     >
       <KeyboardAvoidingView
@@ -133,53 +133,53 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   title: {
-    fontFamily: 'PlayfairDisplay_400Regular',
-    fontSize: 56,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    fontSize: 52,
     color: Colors.textLight,
     marginBottom: 8,
     letterSpacing: 1,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 10,
-    fontStyle: 'italic',
-  },
-  subtitle: {
-    fontFamily: 'DMSans_400Regular',
-    fontSize: 18,
-    color: Colors.textLight,
-    letterSpacing: 1,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowColor: 'rgba(0, 0, 0, 0.15)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
+  },
+  subtitle: {
+    fontFamily: 'DMSans_500Medium',
+    fontSize: 18,
+    color: Colors.textLight,
+    letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   form: {
     gap: 15,
   },
   input: {
-    borderWidth: 0,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     borderRadius: 16,
     padding: 18,
     fontSize: 16,
     fontFamily: 'DMSans_400Regular',
-    backgroundColor: 'rgba(61, 30, 44, 0.8)',
-    color: Colors.textLight,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    color: Colors.text,
+    shadowColor: 'rgba(0, 0, 0, 0.1)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   button: {
-    backgroundColor: Colors.gold,
-    borderRadius: 16,
+    backgroundColor: Colors.textLight,
+    borderRadius: 20,
     padding: 18,
     alignItems: 'center',
     marginTop: 10,
-    shadowColor: Colors.gold,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: 'rgba(0, 0, 0, 0.2)',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   buttonDisabled: {
     backgroundColor: Colors.textMuted,
@@ -187,9 +187,9 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontFamily: 'DMSans_700Bold',
-    color: Colors.background,
+    color: Colors.primary,
     fontSize: 18,
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
   linkButton: {
     alignItems: 'center',
@@ -199,12 +199,13 @@ const styles = StyleSheet.create({
     fontFamily: 'DMSans_400Regular',
     fontSize: 15,
     color: Colors.textLight,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
     textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    textShadowRadius: 2,
   },
   linkBold: {
     fontFamily: 'DMSans_700Bold',
-    color: Colors.gold,
+    color: Colors.textLight,
+    textDecorationLine: 'underline',
   },
 });

@@ -321,8 +321,8 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingTop: 60,
-    paddingBottom: 30,
+    paddingTop: 50,
+    paddingBottom: 24,
     paddingHorizontal: 20,
     backgroundColor: Colors.surface,
     borderBottomWidth: 1,
