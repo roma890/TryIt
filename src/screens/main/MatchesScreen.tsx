@@ -82,6 +82,25 @@ export const MatchesScreen: React.FC<MatchesScreenProps> = ({
     setSelectedCuisines(new Set());
   }, []);
 
+  // Load matches from Firestore
+  const loadMatches = useCallback(async () => {
+    try {
+      setLoading(true);
+      const likedRestaurants = await firestoreService.getLikedRestaurants(userId);
+      setAllMatches(likedRestaurants);
+      setMatches(likedRestaurants);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error loading matches:', error);
+      setLoading(false);
+    }
+  }, [userId]);
+
+  // Load matches on mount
+  useEffect(() => {
+    loadMatches();
+  }, [loadMatches]);
+
   // Apply filtering - optimized with useMemo instead of useEffect
   useEffect(() => {
     const filtered = allMatches.filter(restaurant => {

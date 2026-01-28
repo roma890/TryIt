@@ -516,11 +516,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontFamily: 'PlayfairDisplay_900Black',
     fontSize: 32,
-    color: Colors.textLight,
+    color: Colors.text,
     letterSpacing: 0.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   filterIcon: {
     borderRadius: 20,
